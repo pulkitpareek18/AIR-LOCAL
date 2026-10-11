@@ -125,7 +125,7 @@
           </div>
           <div>
             <h3 class="text-sm font-semibold text-slate-200">Direct Local Wi-Fi Link Established</h3>
-            <p id="channelStats" class="text-xs text-slate-400 font-mono">Channel: RTCDataChannel (SCTP/UDP) • Binary Mode</p>
+            <p id="channelStats" class="text-xs text-slate-400 font-mono">Channel: RTCDataChannel (SCTP/UDP) • Turbo Memory Pipelining</p>
           </div>
         </div>
 
@@ -156,7 +156,7 @@
                 <i data-lucide="files" class="w-7 h-7"></i>
               </div>
               <p class="text-sm font-medium text-slate-200">Drag files here, or <span class="text-cyan-400 underline underline-offset-2">browse files</span></p>
-              <p class="text-xs text-slate-400 mt-1">Chunked in 64KB slices with backpressure control</p>
+              <p class="text-xs text-slate-400 mt-1">Pipelined memory stream with zero-starvation backpressure</p>
             </div>
           </div>
 
@@ -404,14 +404,19 @@
     let html5QrScanner = null;
     let scannerTarget = null; // 'host' or 'joiner'
 
-    // Transfer Engine State
-    const CHUNK_SIZE = 64 * 1024; // 64 KB per binary slice
+    // Transfer Engine State (Turbo High-Throughput Engine)
+    const CHUNK_SIZE = 64 * 1024; // 64 KB per binary slice (standard WebRTC SCTP MTU limit)
+    const BLOCK_SIZE = 4 * 1024 * 1024; // 4 MB pipelined memory buffer block
+    const HIGH_WATERMARK = 16 * 1024 * 1024; // 16 MB maximum queued data in SCTP
+    const LOW_WATERMARK = 4 * 1024 * 1024; // 4 MB low threshold to prevent socket starvation
+    let bufferDrainResolver = null;
     let stagedFiles = [];
     let isTransferring = false;
     let activeReceivingFile = null;
     let receivedChunks = [];
     let totalReceivedBytes = 0;
     let transferStartTime = 0;
+    let lastReceiveUiUpdate = 0;
 
     // Initialize Lucide icons on boot
     window.addEventListener('DOMContentLoaded', () => {
@@ -639,26 +644,82 @@
     }
 
     function setupDataChannelEvents(channel) {
+      // Configure backpressure threshold for high throughput (never let socket starve)
+      channel.bufferedAmountLowThreshold = LOW_WATERMARK;
+      
+      channel.onbufferedamountlow = () => {
+        if (bufferDrainResolver) {
+          const resolve = bufferDrainResolver;
+          bufferDrainResolver = null;
+          resolve();
+        }
+      };
+
       channel.onopen = () => {
         updateNetworkBadge('Connected');
         document.getElementById('setupWizard').classList.add('hidden');
         document.getElementById('transferView').classList.remove('hidden');
         document.getElementById('transferView').classList.add('flex');
-        logMessage('Direct peer-to-peer data channel successfully opened.', 'success');
+        logMessage('Direct peer-to-peer data channel successfully opened (Turbo Engine ready).', 'success');
         playChime(440, 0.1);
       };
 
       channel.onclose = () => {
         updateNetworkBadge('Disconnected');
         logMessage('Data channel disconnected.', 'error');
+        if (bufferDrainResolver) {
+          bufferDrainResolver();
+          bufferDrainResolver = null;
+        }
       };
 
       channel.onerror = (err) => {
         console.error('Data channel error:', err);
         logMessage('Data channel error occurred.', 'error');
+        if (bufferDrainResolver) {
+          bufferDrainResolver();
+          bufferDrainResolver = null;
+        }
       };
 
       channel.onmessage = handleIncomingDataChunk;
+    }
+
+    function waitForBufferDrain() {
+      if (!dataChannel || dataChannel.bufferedAmount < LOW_WATERMARK) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        let timeoutId;
+        bufferDrainResolver = () => {
+          clearTimeout(timeoutId);
+          resolve();
+        };
+        // Safety timeout so transfer never stalls
+        timeoutId = setTimeout(() => {
+          bufferDrainResolver = null;
+          resolve();
+        }, 150);
+      });
+    }
+
+    function updateProgressUI(currentBytes, totalBytes, startTime) {
+      if (!totalBytes || totalBytes <= 0) return;
+      const percent = Math.min(100, Math.round((currentBytes / totalBytes) * 100));
+      document.getElementById('progressBar').style.width = `${percent}%`;
+      document.getElementById('progressPercentage').innerText = `${percent}%`;
+      document.getElementById('bytesTransferred').innerText = `${formatBytes(currentBytes)} / ${formatBytes(totalBytes)}`;
+
+      const elapsedSec = (performance.now() - startTime) / 1000;
+      if (elapsedSec > 0.2) {
+        const bytesPerSec = currentBytes / elapsedSec;
+        const mbPerSec = (bytesPerSec / (1024 * 1024)).toFixed(1);
+        document.getElementById('speedMetric').innerText = `${mbPerSec} MB/s`;
+
+        const remainingBytes = Math.max(0, totalBytes - currentBytes);
+        const etaSec = bytesPerSec > 0 ? Math.max(0, Math.round(remainingBytes / bytesPerSec)) : 0;
+        document.getElementById('etaEstimate').innerText = `ETA: ${etaSec}s`;
+      }
     }
 
     function handleIncomingDataChunk(event) {
@@ -668,25 +729,32 @@
           activeReceivingFile = msg;
           receivedChunks = [];
           totalReceivedBytes = 0;
+          lastReceiveUiUpdate = 0;
           transferStartTime = performance.now();
           document.getElementById('activeFileName').innerText = `Receiving: ${msg.name}`;
           logMessage(`Inbound transfer initiated: ${msg.name} (${formatBytes(msg.size)})`);
         } else if (msg.type === 'END_FILE') {
+          if (activeReceivingFile) {
+            updateProgressUI(activeReceivingFile.size, activeReceivingFile.size, transferStartTime);
+          }
+
           // Reassemble blob and trigger save
-          const fileBlob = new Blob(receivedChunks, { type: activeReceivingFile.mimeType || 'application/octet-stream' });
+          const fileBlob = new Blob(receivedChunks, { type: (activeReceivingFile && activeReceivingFile.mimeType) || 'application/octet-stream' });
           const downloadUrl = URL.createObjectURL(fileBlob);
           
           const a = document.createElement('a');
           a.href = downloadUrl;
-          a.download = activeReceivingFile.name;
+          a.download = activeReceivingFile ? activeReceivingFile.name : 'downloaded_file';
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
 
           setTimeout(() => URL.revokeObjectURL(downloadUrl), 4000);
 
-          logMessage(`Completed: ${activeReceivingFile.name} saved directly to device!`, 'success');
-          showToast(`Downloaded ${activeReceivingFile.name}`, 'success');
+          if (activeReceivingFile) {
+            logMessage(`Completed: ${activeReceivingFile.name} saved directly to device!`, 'success');
+            showToast(`Downloaded ${activeReceivingFile.name}`, 'success');
+          }
           playChime(660, 0.2);
 
           // Reset progress
@@ -703,21 +771,11 @@
         totalReceivedBytes += event.data.byteLength;
 
         if (activeReceivingFile) {
-          const percent = Math.min(100, Math.round((totalReceivedBytes / activeReceivingFile.size) * 100));
-          document.getElementById('progressBar').style.width = `${percent}%`;
-          document.getElementById('progressPercentage').innerText = `${percent}%`;
-          document.getElementById('bytesTransferred').innerText = `${formatBytes(totalReceivedBytes)} / ${formatBytes(activeReceivingFile.size)}`;
-
-          // Calculate transmission speed & ETA
-          const elapsedSec = (performance.now() - transferStartTime) / 1000;
-          if (elapsedSec > 0.5) {
-            const bytesPerSec = totalReceivedBytes / elapsedSec;
-            const mbPerSec = (bytesPerSec / (1024 * 1024)).toFixed(1);
-            document.getElementById('speedMetric').innerText = `${mbPerSec} MB/s`;
-
-            const remainingBytes = activeReceivingFile.size - totalReceivedBytes;
-            const etaSec = Math.max(0, Math.round(remainingBytes / bytesPerSec));
-            document.getElementById('etaEstimate').innerText = `ETA: ${etaSec}s`;
+          const now = performance.now();
+          // Throttle UI update to every 100ms or when complete to prevent DOM lag
+          if (now - lastReceiveUiUpdate > 100 || totalReceivedBytes >= activeReceivingFile.size) {
+            lastReceiveUiUpdate = now;
+            updateProgressUI(totalReceivedBytes, activeReceivingFile.size, transferStartTime);
           }
         }
       }
@@ -732,10 +790,11 @@
       document.getElementById('startSendBtn').disabled = true;
       document.getElementById('startSendBtn').classList.add('opacity-50');
 
-      // Set low threshold to 1MB so the browser triggers the event when space clears
-      dataChannel.bufferedAmountLowThreshold = 1024 * 1024;
+      dataChannel.bufferedAmountLowThreshold = LOW_WATERMARK;
 
       for (let i = 0; i < stagedFiles.length; i++) {
+        if (!isTransferring || !dataChannel || dataChannel.readyState !== 'open') break;
+
         const file = stagedFiles[i];
         document.getElementById('activeFileName').innerText = `Sending: ${file.name}`;
         logMessage(`Transmitting: ${file.name} (${formatBytes(file.size)})`);
@@ -748,46 +807,54 @@
           mimeType: file.type
         }));
 
-        let offset = 0;
+        let bytesSent = 0;
+        let lastSendUiUpdate = 0;
         transferStartTime = performance.now();
 
-        // 2. Stream chunk by chunk
-        while (offset < file.size) {
-          // Backpressure check: wait if RTCDataChannel buffer has > 4MB queued
-          if (dataChannel.bufferedAmount > 4 * 1024 * 1024) {
-            await new Promise((resolve) => {
-              const listener = () => {
-                dataChannel.removeEventListener('bufferedamountlow', listener);
-                resolve();
-              };
-              dataChannel.addEventListener('bufferedamountlow', listener);
-            });
+        // Double-buffering: prefetch first memory block from disk asynchronously
+        let nextBlockOffset = Math.min(BLOCK_SIZE, file.size);
+        let nextBlockPromise = file.slice(0, nextBlockOffset).arrayBuffer();
+
+        while (bytesSent < file.size && isTransferring) {
+          const currentBlockBuffer = await nextBlockPromise;
+
+          // Asynchronously prefetch the NEXT block while the current block streams over network
+          if (nextBlockOffset < file.size) {
+            const nextEnd = Math.min(nextBlockOffset + BLOCK_SIZE, file.size);
+            nextBlockPromise = file.slice(nextBlockOffset, nextEnd).arrayBuffer();
+            nextBlockOffset = nextEnd;
+          } else {
+            nextBlockPromise = null;
           }
 
-          const slice = file.slice(offset, offset + CHUNK_SIZE);
-          const buffer = await slice.arrayBuffer();
-          dataChannel.send(buffer);
+          // Stream chunks from the in-memory blockBuffer
+          let blockOffset = 0;
+          const blockLength = currentBlockBuffer.byteLength;
 
-          offset += buffer.byteLength;
+          while (blockOffset < blockLength && isTransferring) {
+            if (dataChannel.bufferedAmount >= HIGH_WATERMARK) {
+              await waitForBufferDrain();
+            }
 
-          // Update Progress UI
-          const percent = Math.min(100, Math.round((offset / file.size) * 100));
-          document.getElementById('progressBar').style.width = `${percent}%`;
-          document.getElementById('progressPercentage').innerText = `${percent}%`;
-          document.getElementById('bytesTransferred').innerText = `${formatBytes(offset)} / ${formatBytes(file.size)}`;
+            const chunkEnd = Math.min(blockOffset + CHUNK_SIZE, blockLength);
+            const chunk = currentBlockBuffer.slice(blockOffset, chunkEnd);
+            dataChannel.send(chunk);
 
-          // Speed & ETA
-          const elapsedSec = (performance.now() - transferStartTime) / 1000;
-          if (elapsedSec > 0.5) {
-            const bytesPerSec = offset / elapsedSec;
-            const mbPerSec = (bytesPerSec / (1024 * 1024)).toFixed(1);
-            document.getElementById('speedMetric').innerText = `${mbPerSec} MB/s`;
+            const chunkSize = chunkEnd - blockOffset;
+            bytesSent += chunkSize;
+            blockOffset = chunkEnd;
 
-            const remainingBytes = file.size - offset;
-            const etaSec = Math.max(0, Math.round(remainingBytes / bytesPerSec));
-            document.getElementById('etaEstimate').innerText = `ETA: ${etaSec}s`;
+            // Throttle UI update to every 100ms
+            const now = performance.now();
+            if (now - lastSendUiUpdate > 100) {
+              lastSendUiUpdate = now;
+              updateProgressUI(bytesSent, file.size, transferStartTime);
+            }
           }
         }
+
+        // Final UI update for this file
+        updateProgressUI(file.size, file.size, transferStartTime);
 
         // 3. Send end of file delimiter
         dataChannel.send(JSON.stringify({ type: 'END_FILE' }));
@@ -978,8 +1045,12 @@
       userRole = null;
       stagedFiles = [];
       receivedChunks = [];
-      
-      document.getElementById('setupWizard').classList.remove('hidden');
+      isTransferring = false;
+      if (bufferDrainResolver) {
+        bufferDrainResolver();
+        bufferDrainResolver = null;
+      }
+      lastReceiveUiUpdate = 0;
       document.getElementById('transferView').classList.add('hidden');
       document.getElementById('roleSelector').classList.remove('hidden');
       document.getElementById('hostPanel').classList.add('hidden');

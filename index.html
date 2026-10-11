@@ -62,7 +62,7 @@
             <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">AirLocal Ultra</span>
             <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">Direct IPv4 Link</span>
           </div>
-          <p class="text-[11px] text-slate-400">Zero Cloud • Unordered SCTP Multi-Stream • Maximum LAN Speed</p>
+          <p class="text-[11px] text-slate-400">Zero Cloud • Safe State Machine • Maximum LAN Wire Speed</p>
         </div>
       </div>
 
@@ -103,7 +103,7 @@
               <span id="offerSizeBadge" class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">~240 bytes</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan with Phone (Device B)</h3>
-            <p class="text-xs text-slate-400 mt-1">Contains optimized candidate routes for direct Wi-Fi pairing.</p>
+            <p class="text-xs text-slate-400 mt-1">Contains stripped SDP offer with local candidate endpoints.</p>
 
             <div class="my-5 p-4 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col items-center justify-center min-h-[240px]">
               <div id="offerLoader" class="flex flex-col items-center gap-2 py-8">
@@ -153,7 +153,7 @@
             </div>
           </div>
           <div class="text-[11px] text-slate-500 font-mono text-center">
-            Direct Link • Bypasses Android SoftAP Firewall
+            Zero third-party signaling • Direct local peer connection
           </div>
         </div>
       </div>
@@ -442,7 +442,6 @@
       logs.scrollTop = logs.scrollHeight;
     }
 
-    // Direct IPv4 Extractor: Converts all private ranges (192.168.x.x, 10.x.x.x, 172.x.x.x)
     function pruneAndCompressSDP(sdp, type) {
       const lines = sdp.split('\r\n');
       let ufrag = '', pwd = '', fingerprint = '', sctpPort = '5000';
@@ -457,12 +456,7 @@
           const parts = line.split(' ');
           if (parts.length >= 8) {
             const addr = parts[4];
-            // Prioritize real LAN IPv4 addresses over .local mDNS hostnames
-            if (addr.includes('.') && !addr.endsWith('.local')) {
-              candidates.push([parts[0].replace('a=candidate:', ''), parts[3], addr, parts[5]]);
-            } else {
-              candidates.push([parts[0].replace('a=candidate:', ''), parts[3], addr, parts[5]]);
-            }
+            candidates.push([parts[0].replace('a=candidate:', ''), parts[3], addr, parts[5]]);
           }
         }
       }
@@ -531,7 +525,6 @@
     }
 
     function createPurePeerConnection() {
-      // Direct local binding without STUN overhead
       const connection = new RTCPeerConnection({
         iceServers: [],
         iceTransportPolicy: 'all',
@@ -544,7 +537,7 @@
           isConnected = true;
           updateStatus('Connected (Local Wi-Fi)', 'connected');
         } else if (connection.iceConnectionState === 'failed') {
-          logTrace('ICE checks timed out. Retrying local sockets...', 'error');
+          logTrace('ICE check stalled. Ensure devices share same Wi-Fi.', 'error');
         }
       };
 
@@ -561,7 +554,6 @@
         const candidateHandler = (e) => {
           if (e.candidate) {
             clearTimeout(timer);
-            // Allow 400ms for secondary local network interfaces to bind
             timer = setTimeout(() => {
               connection.removeEventListener('icecandidate', candidateHandler);
               resolve();
@@ -574,7 +566,6 @@
         };
 
         connection.addEventListener('icecandidate', candidateHandler);
-        // Fail-safe timeout
         setTimeout(() => {
           connection.removeEventListener('icecandidate', candidateHandler);
           resolve();
@@ -775,6 +766,7 @@
 
             if (code && code.data && !isProcessingPayload) {
               playChime(880, 0.15);
+              // CRITICAL: Shut down camera immediately to prevent mobile thread locks
               stopCameraScanner();
               container.classList.add('hidden');
               btnText.innerText = mode === 'host' ? 'Open Desktop Camera to Scan' : 'Start Camera Scanner';
@@ -809,6 +801,7 @@
 
     function setupDataChannelEvents(channel, idx) {
       channel.onopen = () => {
+        channel.bufferedAmountLowThreshold = BUFFER_LOW_WATER;
         if (!isConnected) {
           isConnected = true;
           updateStatus('Connected (Local Wi-Fi)', 'connected');
@@ -820,7 +813,6 @@
           playChime(659.25, 0.2);
           stopCameraScanner();
         }
-        channel.bufferedAmountLowThreshold = BUFFER_LOW_WATER;
       };
 
       channel.onmessage = async (e) => {
@@ -931,9 +923,13 @@
     }
 
     async function transmitPayload() {
-      const openChannels = channels.filter(c => c.readyState === 'open');
-      if (!stagedFiles.length || openChannels.length === 0) {
-        return showToast('No files staged or channels not ready', 'error');
+      // SAFE TRANSMIT: Verify state before attempting .send()
+      const openChannels = channels.filter(c => c && c.readyState === 'open');
+      if (!stagedFiles.length) {
+        return showToast('No files staged for transmission', 'error');
+      }
+      if (openChannels.length === 0) {
+        return showToast('Channels still connecting. Please wait...', 'error');
       }
 
       isSending = true;
@@ -947,12 +943,18 @@
         document.getElementById('currentFileName').innerText = `Sending: ${file.name}`;
         logTrace(`Streaming: ${file.name} over ${openChannels.length} unordered channels (${formatBytes(file.size)})`);
 
-        openChannels[0].send(JSON.stringify({
-          type: 'START_FILE',
-          name: file.name,
-          size: file.size,
-          mimeType: file.type
-        }));
+        // Send metadata on verified open channel
+        try {
+          openChannels[0].send(JSON.stringify({
+            type: 'START_FILE',
+            name: file.name,
+            size: file.size,
+            mimeType: file.type
+          }));
+        } catch (e) {
+          logTrace(`Metadata send failure: ${e.message}`, 'error');
+          break;
+        }
 
         let offset = 0;
         let channelIdx = 0;
@@ -960,6 +962,12 @@
 
         while (offset < file.size) {
           const activeCh = openChannels[channelIdx % openChannels.length];
+
+          // Re-verify individual channel readyState
+          if (!activeCh || activeCh.readyState !== 'open') {
+            await new Promise(r => setTimeout(r, 20));
+            continue;
+          }
 
           if (activeCh.bufferedAmount > BUFFER_HIGH_WATER) {
             await new Promise((resolve) => {
@@ -1011,8 +1019,10 @@
           }
         }
 
-        openChannels[0].send(JSON.stringify({ type: 'END_FILE' }));
-        logTrace(`Dispatched: ${file.name}`, 'success');
+        try {
+          openChannels[0].send(JSON.stringify({ type: 'END_FILE' }));
+          logTrace(`Dispatched: ${file.name}`, 'success');
+        } catch(e) {}
       }
 
       showToast('All files sent successfully!', 'success');

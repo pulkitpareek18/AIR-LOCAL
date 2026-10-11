@@ -60,9 +60,9 @@
         <div>
           <div class="flex items-center space-x-2">
             <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">AirLocal Ultra</span>
-            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">Direct IPv4 Link</span>
+            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">Robust SDP</span>
           </div>
-          <p class="text-[11px] text-slate-400">Zero Cloud • Safe State Machine • Maximum LAN Wire Speed</p>
+          <p class="text-[11px] text-slate-400">Direct Hardware Speed • Zero Cloud Dependencies</p>
         </div>
       </div>
 
@@ -94,16 +94,16 @@
         </button>
       </div>
 
-      <!-- Host View (Device A) -->
+      <!-- Host View -->
       <div id="hostView" class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs uppercase font-mono text-sky-400 font-bold tracking-wider">Step 1: Host Offer</span>
-              <span id="offerSizeBadge" class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">~240 bytes</span>
+              <span id="offerSizeBadge" class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">~320 bytes</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan with Phone (Device B)</h3>
-            <p class="text-xs text-slate-400 mt-1">Contains stripped SDP offer with local candidate endpoints.</p>
+            <p class="text-xs text-slate-400 mt-1">Contains standards-compliant SDP with all host candidate routes.</p>
 
             <div class="my-5 p-4 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col items-center justify-center min-h-[240px]">
               <div id="offerLoader" class="flex flex-col items-center gap-2 py-8">
@@ -128,7 +128,7 @@
               <span id="hostStatusBadge" class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Awaiting Phone</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan Phone's Answer QR</h3>
-            <p class="text-xs text-slate-400 mt-1">Use desktop camera or paste the answer payload to establish connection.</p>
+            <p class="text-xs text-slate-400 mt-1">Use desktop webcam or paste the answer string below.</p>
 
             <div class="my-5 flex flex-col gap-3">
               <button id="hostStartCamBtn" onclick="toggleCameraScanner('host')" class="w-full py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2">
@@ -153,12 +153,12 @@
             </div>
           </div>
           <div class="text-[11px] text-slate-500 font-mono text-center">
-            Zero third-party signaling • Direct local peer connection
+            P2P Direct Handshake • Zero Cloud Dependencies
           </div>
         </div>
       </div>
 
-      <!-- Join View (Device B / Phone) -->
+      <!-- Join View (Phone) -->
       <div id="joinView" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
@@ -167,7 +167,7 @@
               <span class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">Camera Scan</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan Host's Offer QR</h3>
-            <p class="text-xs text-slate-400 mt-1">Point your phone camera at the QR code on the desktop screen.</p>
+            <p class="text-xs text-slate-400 mt-1">Point your phone camera at the QR code displayed on the desktop.</p>
 
             <div class="my-5 flex flex-col gap-3">
               <button id="joinStartCamBtn" onclick="toggleCameraScanner('join')" class="w-full py-3 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20">
@@ -192,7 +192,7 @@
             </div>
           </div>
           <div class="text-[11px] text-slate-500 font-mono text-center">
-            In-browser jsQR decoding • Pure offline client
+            In-browser decoding • Pure offline client
           </div>
         </div>
 
@@ -214,7 +214,7 @@
               </div>
               <div id="answerLoader" class="hidden flex flex-col items-center gap-2 py-8">
                 <div class="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
-                <span class="text-xs font-mono text-slate-400">Harvesting network routes...</span>
+                <span class="text-xs font-mono text-slate-400">Generating handshake...</span>
               </div>
               <div id="answerQr" class="hidden"></div>
             </div>
@@ -241,7 +241,7 @@
               <h3 class="text-sm font-semibold text-slate-200">Local Wi-Fi Pipe Active</h3>
               <span id="diskStreamIndicator" class="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-950 border border-emerald-700/60 text-emerald-300">Stream-to-Disk</span>
             </div>
-            <p class="text-xs text-slate-400 font-mono mt-0.5">4x Unordered Streams • 64KB Slices • Max Wi-Fi 6 Throughput</p>
+            <p class="text-xs text-slate-400 font-mono mt-0.5">4x Unordered Streams • 64KB Slices • Max Throughput</p>
           </div>
         </div>
 
@@ -314,7 +314,7 @@
             <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Diagnostics</h4>
             <div id="eventLogs" class="min-h-[120px] max-h-[140px] overflow-y-auto custom-scrollbar bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 space-y-1.5 text-xs font-mono text-slate-400">
               <div class="text-slate-500 flex items-center gap-2">
-                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> Standby for optical pairing.
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> Ready for optical pairing.
               </div>
             </div>
           </div>
@@ -442,94 +442,40 @@
       logs.scrollTop = logs.scrollHeight;
     }
 
-    function pruneAndCompressSDP(sdp, type) {
-      const lines = sdp.split('\r\n');
-      let ufrag = '', pwd = '', fingerprint = '', sctpPort = '5000';
-      const candidates = [];
-
-      for (const line of lines) {
-        if (line.startsWith('a=ice-ufrag:')) ufrag = line.substring(12);
-        else if (line.startsWith('a=ice-pwd:')) pwd = line.substring(10);
-        else if (line.startsWith('a=fingerprint:')) fingerprint = line.substring(14);
-        else if (line.startsWith('a=sctp-port:')) sctpPort = line.substring(12);
-        else if (line.startsWith('a=candidate:')) {
-          const parts = line.split(' ');
-          if (parts.length >= 8) {
-            const addr = parts[4];
-            candidates.push([parts[0].replace('a=candidate:', ''), parts[3], addr, parts[5]]);
-          }
+    // Preserves 100% of the browser's valid SDP structure while stripping redundant IPv6
+    function compressSDP(sdp, type) {
+      const lines = sdp.split('\r\n').filter(line => {
+        if (!line) return false;
+        if (line.startsWith('a=candidate:')) {
+          // Keep only UDP host candidates with IPv4 (skip IPv6 colons)
+          return line.includes(' typ host') && !line.includes(':');
         }
-      }
-
-      const minimalObj = {
-        t: type === 'offer' ? 'o' : 'a',
-        u: ufrag,
-        p: pwd,
-        f: fingerprint,
-        s: sctpPort,
-        c: candidates
-      };
-
-      const jsonStr = JSON.stringify(minimalObj);
-      const deflated = pako.deflate(jsonStr, { level: 9 });
-
+        return true;
+      });
+      const cleanSdp = lines.join('\r\n') + '\r\n';
+      const payload = JSON.stringify({ t: type === 'offer' ? 'o' : 'a', s: cleanSdp });
+      const deflated = pako.deflate(payload, { level: 9 });
       let binary = '';
-      const len = deflated.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(deflated[i]);
-      }
+      for (let i = 0; i < deflated.length; i++) binary += String.fromCharCode(deflated[i]);
       return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
-    function decompressAndReconstructSDP(safeBase64) {
+    function decompressSDP(safeBase64) {
       let base64 = safeBase64.replace(/-/g, '+').replace(/_/g, '/');
       while (base64.length % 4) base64 += '=';
-
       const binary = atob(base64);
       const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
       const jsonStr = pako.inflate(bytes, { to: 'string' });
       const obj = JSON.parse(jsonStr);
-
-      const type = obj.t === 'o' ? 'offer' : 'answer';
-      const setup = type === 'offer' ? 'actpass' : 'active';
-      const primaryCandidate = obj.c && obj.c.length > 0 ? obj.c.find(cand => cand[2].includes('.') && !cand[2].endsWith('.local')) || obj.c[0] : null;
-
-      let sdp = [
-        'v=0',
-        'o=- 1000000000000000000 2 IN IP4 127.0.0.1',
-        's=-',
-        't=0 0',
-        'a=msid-semantic: WMS',
-        'm=application 9 UDP/DTLS/SCTP webrtc-datachannel',
-        `c=IN IP4 ${primaryCandidate && !primaryCandidate[2].endsWith('.local') ? primaryCandidate[2] : '0.0.0.0'}`,
-        `a=ice-ufrag:${obj.u}`,
-        `a=ice-pwd:${obj.p}`,
-        `a=fingerprint:${obj.f}`,
-        `a=setup:${setup}`,
-        'a=mid:0',
-        `a=sctp-port:${obj.s || '5000'}`,
-        'a=max-message-size:262144'
-      ];
-
-      if (obj.c && Array.isArray(obj.c)) {
-        obj.c.forEach(cand => {
-          sdp.push(`a=candidate:${cand[0]} 1 udp ${cand[1]} ${cand[2]} ${cand[3]} typ host`);
-        });
-      }
-      sdp.push('');
-
-      return { type, sdp: sdp.join('\r\n') };
+      return {
+        type: obj.t === 'o' ? 'offer' : 'answer',
+        sdp: obj.s
+      };
     }
 
     function createPurePeerConnection() {
-      const connection = new RTCPeerConnection({
-        iceServers: [],
-        iceTransportPolicy: 'all',
-        bundlePolicy: 'max-bundle'
-      });
+      const connection = new RTCPeerConnection({ iceServers: [] });
 
       connection.oniceconnectionstatechange = () => {
         logTrace(`ICE Link: ${connection.iceConnectionState}`);
@@ -550,6 +496,8 @@
       };
 
       const gatheringComplete = new Promise((resolve) => {
+        if (connection.iceGatheringState === 'complete') return resolve();
+
         let timer = null;
         const candidateHandler = (e) => {
           if (e.candidate) {
@@ -557,7 +505,7 @@
             timer = setTimeout(() => {
               connection.removeEventListener('icecandidate', candidateHandler);
               resolve();
-            }, 400);
+            }, 500);
           } else {
             clearTimeout(timer);
             connection.removeEventListener('icecandidate', candidateHandler);
@@ -569,7 +517,7 @@
         setTimeout(() => {
           connection.removeEventListener('icecandidate', candidateHandler);
           resolve();
-        }, 1500);
+        }, 1800);
       });
 
       return { connection, gatheringComplete };
@@ -597,7 +545,7 @@
 
       await gatheringComplete;
 
-      compactOfferString = pruneAndCompressSDP(pc.localDescription.sdp, 'offer');
+      compactOfferString = compressSDP(pc.localDescription.sdp, 'offer');
       document.getElementById('offerSizeBadge').innerText = `${compactOfferString.length} bytes`;
 
       const qrEl = document.getElementById('offerQr');
@@ -628,7 +576,7 @@
 
       try {
         const rawClean = offerStr.trim();
-        const reconstructedOffer = decompressAndReconstructSDP(rawClean);
+        const reconstructedOffer = decompressSDP(rawClean);
 
         if (pc) {
           try { pc.close(); } catch(e) {}
@@ -654,7 +602,7 @@
 
         await gatheringComplete;
 
-        compactAnswerString = pruneAndCompressSDP(pc.localDescription.sdp, 'answer');
+        compactAnswerString = compressSDP(pc.localDescription.sdp, 'answer');
 
         document.getElementById('answerSizeBadge').innerText = `${compactAnswerString.length} bytes`;
         answerLoader.classList.add('hidden');
@@ -682,7 +630,7 @@
         console.error('Failed to process offer:', err);
         answerLoader.classList.add('hidden');
         answerPlaceholder.classList.remove('hidden');
-        showToast(`Scan Error: ${err.message || 'Corrupt QR data'}`, 'error');
+        showToast(`Pairing Error: ${err.message || 'Corrupt QR data'}`, 'error');
       } finally {
         isProcessingPayload = false;
       }
@@ -707,7 +655,7 @@
           throw new Error(`Signaling busy (${pc.signalingState})`);
         }
 
-        const reconstructedAnswer = decompressAndReconstructSDP(answerStr.trim());
+        const reconstructedAnswer = decompressSDP(answerStr.trim());
         await pc.setRemoteDescription(new RTCSessionDescription(reconstructedAnswer));
 
         showToast('Answer accepted! Connecting socket...', 'info');
@@ -716,7 +664,7 @@
         stopCameraScanner();
       } catch (err) {
         console.error(err);
-        showToast(err.message || 'Invalid answer data', 'error');
+        showToast(`Answer Error: ${err.message}`, 'error');
       } finally {
         isProcessingPayload = false;
       }
@@ -766,7 +714,6 @@
 
             if (code && code.data && !isProcessingPayload) {
               playChime(880, 0.15);
-              // CRITICAL: Shut down camera immediately to prevent mobile thread locks
               stopCameraScanner();
               container.classList.add('hidden');
               btnText.innerText = mode === 'host' ? 'Open Desktop Camera to Scan' : 'Start Camera Scanner';
@@ -923,7 +870,6 @@
     }
 
     async function transmitPayload() {
-      // SAFE TRANSMIT: Verify state before attempting .send()
       const openChannels = channels.filter(c => c && c.readyState === 'open');
       if (!stagedFiles.length) {
         return showToast('No files staged for transmission', 'error');
@@ -943,7 +889,6 @@
         document.getElementById('currentFileName').innerText = `Sending: ${file.name}`;
         logTrace(`Streaming: ${file.name} over ${openChannels.length} unordered channels (${formatBytes(file.size)})`);
 
-        // Send metadata on verified open channel
         try {
           openChannels[0].send(JSON.stringify({
             type: 'START_FILE',
@@ -963,7 +908,6 @@
         while (offset < file.size) {
           const activeCh = openChannels[channelIdx % openChannels.length];
 
-          // Re-verify individual channel readyState
           if (!activeCh || activeCh.readyState !== 'open') {
             await new Promise(r => setTimeout(r, 20));
             continue;

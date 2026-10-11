@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AirLocal - 100% Serverless Local Wi-Fi P2P Drop</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfeff',
+              400: '#22d3ee',
+              500: '#06b6d4',
+              600: '#0891b2',
+              900: '#164e63',
+            },
+            accent: {
+              400: '#34d399',
+              500: '#10b981',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Menlo', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- LZ-String for compressing WebRTC SDP into compact QR payloads -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  <!-- QRCode.js Generator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- HTML5 QR Code Scanner -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); }
+      50% { box-shadow: 0 0 30px rgba(6, 182, 212, 0.8); }
+    }
+    .glow-cyan {
+      animation: pulse-glow 3s infinite ease-in-out;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #06b6d4;
+    }
+    /* QR styling */
+    #qrContainer canvas, #qrContainer img, #answerQrContainer canvas, #answerQrContainer img {
+      margin: 0 auto;
+      border-radius: 0.75rem;
+      border: 6px solid #ffffff;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-cyan-500/20">
+          <i data-lucide="radio" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">AirLocal</span>
+            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 rounded-full">Serverless P2P</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Zero backend • Air-gapped local Wi-Fi drop</p>
+        </div>
+      </div>
+
+      <!-- LAN Connection State Badge -->
+      <div id="lanStatusBadge" class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full text-xs font-mono">
+        <span id="statusIndicatorDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+        <span id="statusIndicatorText" class="text-slate-300">Idle</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6">
+
+    <!-- Information banner on local security -->
+    <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-400">
+      <div class="flex items-center space-x-2.5">
+        <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+        <span><strong>100% Client-Side Direct Wire:</strong> Files stream straight across your local Wi-Fi via WebRTC DataChannels. No servers, no accounts, no cloud disk.</span>
+      </div>
+      <button onclick="resetApp()" class="shrink-0 text-slate-400 hover:text-slate-200 flex items-center space-x-1.5 transition-colors">
+        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+        <span>Reset Connection</span>
+      </button>
+    </div>
+
+    <!-- Active State: Connected P2P Transfer View (Shown when RTCDataChannel is OPEN) -->
+    <div id="transferView" class="hidden flex-col gap-6">
+      
+      <!-- Live Connection Statistics Banner -->
+      <div class="bg-gradient-to-r from-cyan-950/40 via-slate-900/60 to-emerald-950/40 border border-cyan-800/40 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+        <div class="flex items-center space-x-3">
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <i data-lucide="wifi" class="w-6 h-6 animate-pulse"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-slate-200">Direct Local Wi-Fi Link Established</h3>
+            <p id="channelStats" class="text-xs text-slate-400 font-mono">Channel: RTCDataChannel (SCTP/UDP) • Binary Mode</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full text-xs font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Live Encrypted Pipe
+          </span>
+        </div>
+      </div>
+
+      <!-- File Drop & Management Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Sender Box -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
+                <i data-lucide="upload-cloud" class="w-5 h-5 text-cyan-400"></i> Send Local Files
+              </h2>
+              <span class="text-xs text-slate-400">Any file size</span>
+            </div>
+
+            <!-- Drop Zone -->
+            <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-xl p-8 text-center transition-all cursor-pointer bg-slate-950/40 hover:bg-cyan-950/10 group">
+              <input type="file" id="fileInput" class="hidden" multiple>
+              <div class="w-14 h-14 mx-auto rounded-full bg-slate-800/80 group-hover:bg-cyan-900/40 group-hover:scale-105 flex items-center justify-center text-slate-400 group-hover:text-cyan-400 transition-all mb-3">
+                <i data-lucide="files" class="w-7 h-7"></i>
+              </div>
+              <p class="text-sm font-medium text-slate-200">Drag files here, or <span class="text-cyan-400 underline underline-offset-2">browse files</span></p>
+              <p class="text-xs text-slate-400 mt-1">Chunked in 64KB slices with backpressure control</p>
+            </div>
+          </div>
+
+          <!-- Staged files summary & send action -->
+          <div id="stagedContainer" class="mt-4 hidden">
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Ready to Transmit</h4>
+            <div id="stagedFilesList" class="max-h-36 overflow-y-auto custom-scrollbar space-y-1.5 text-xs text-slate-300 mb-4"></div>
+            
+            <button id="startSendBtn" onclick="sendSelectedFiles()" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold rounded-xl transition-all shadow-lg shadow-cyan-500/25 flex items-center justify-center space-x-2">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              <span>Stream Files Across LAN</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Transfer Monitor Box -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
+              <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i> Transfer Monitor
+            </h2>
+            <span id="speedMetric" class="text-xs font-mono text-cyan-400 font-semibold">0.0 MB/s</span>
+          </div>
+
+          <!-- Progress Widget -->
+          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 mb-4">
+            <div class="flex items-center justify-between text-xs mb-2">
+              <span id="activeFileName" class="text-slate-300 truncate max-w-[200px]">Waiting for files...</span>
+              <span id="progressPercentage" class="font-mono text-cyan-400 font-bold">0%</span>
+            </div>
+            <!-- Progress Bar -->
+            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5">
+              <div id="progressBar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full w-0 transition-all duration-150"></div>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 mt-2 font-mono">
+              <span id="bytesTransferred">0 MB / 0 MB</span>
+              <span id="etaEstimate">ETA: --</span>
+            </div>
+          </div>
+
+          <!-- File Activity & History Feed -->
+          <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Transfer Log</h4>
+          <div id="transferLogs" class="flex-1 min-h-[140px] max-h-[180px] overflow-y-auto custom-scrollbar bg-slate-950/50 border border-slate-800/80 rounded-xl p-3 space-y-2 text-xs font-mono text-slate-400">
+            <div class="text-slate-500 flex items-center gap-2">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500"></i> P2P link ready for high-speed transmission.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Setup & Pairing Wizard (Displayed before WebRTC DataChannel connects) -->
+    <div id="setupWizard" class="flex flex-col gap-6">
+
+      <!-- Step 0: Choose Mode -->
+      <div id="roleSelector" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Initiator (Sender) Card -->
+        <button onclick="selectRole('host')" class="group text-left bg-slate-900/70 hover:bg-slate-800/70 border-2 border-slate-800 hover:border-cyan-500/80 rounded-2xl p-6 transition-all duration-200 relative overflow-hidden flex flex-col justify-between">
+          <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all"></div>
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-cyan-950 border border-cyan-800 text-cyan-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <i data-lucide="upload" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-100 group-hover:text-cyan-300 transition-colors">I Want to Send Files</h3>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">Acts as initiator. Generates a QR code or code snippet to share with the nearby receiver on the same Wi-Fi.</p>
+          </div>
+          <div class="mt-6 flex items-center text-xs font-semibold text-cyan-400 gap-1.5">
+            <span>Select Sender Mode</span>
+            <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+          </div>
+        </button>
+
+        <!-- Joiner (Receiver) Card -->
+        <button onclick="selectRole('joiner')" class="group text-left bg-slate-900/70 hover:bg-slate-800/70 border-2 border-slate-800 hover:border-emerald-500/80 rounded-2xl p-6 transition-all duration-200 relative overflow-hidden flex flex-col justify-between">
+          <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-emerald-950 border border-emerald-800 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <i data-lucide="download" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-100 group-hover:text-emerald-300 transition-colors">I Want to Receive Files</h3>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">Scans the sender's QR code or pastes their offer to produce an instantaneous answer.</p>
+          </div>
+          <div class="mt-6 flex items-center text-xs font-semibold text-emerald-400 gap-1.5">
+            <span>Select Receiver Mode</span>
+            <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+          </div>
+        </button>
+      </div>
+
+      <!-- Host (Initiator) Wizard Panel -->
+      <div id="hostPanel" class="hidden bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-xl">
+        <div class="flex items-center justify-between pb-6 border-b border-slate-800/80 mb-6">
+          <div>
+            <span class="text-xs uppercase font-mono text-cyan-400 font-bold tracking-wider">Step 1 of 2: Sender Handshake</span>
+            <h2 class="text-xl font-bold text-slate-100 mt-0.5">Show this to the Receiver</h2>
+          </div>
+          <button onclick="selectRole(null)" class="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 bg-slate-800 rounded-lg">Change Role</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <!-- QR Code Display -->
+          <div class="flex flex-col items-center justify-center p-6 bg-slate-950 rounded-2xl border border-slate-800">
+            <div id="qrLoading" class="flex flex-col items-center py-10 space-y-3">
+              <div class="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+              <p class="text-xs font-mono text-slate-400">Gathering local ICE network candidates...</p>
+            </div>
+            
+            <div id="qrContainer" class="hidden my-2"></div>
+            
+            <p class="text-xs text-slate-400 text-center mt-3">Scan this QR code using the receiver device's camera</p>
+          </div>
+
+          <!-- Or Manual Text Code Option -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Or Share Direct Code String</label>
+              <div class="relative">
+                <textarea id="offerText" readonly rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-300 focus:outline-none resize-none custom-scrollbar" placeholder="Generating compressed offer payload..."></textarea>
+                <button onclick="copyToClipboard('offerText', this)" class="absolute top-2 right-2 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  <span>Copy</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Receiver's Answer Section -->
+            <div class="pt-4 border-t border-slate-800">
+              <span class="text-xs uppercase font-mono text-cyan-400 font-bold tracking-wider">Step 2: Finish Link</span>
+              <h3 class="text-sm font-semibold text-slate-200 mt-1 mb-2">Scan or Paste Receiver's Answer Code</h3>
+              
+              <div class="space-y-3">
+                <div class="flex gap-2">
+                  <input type="text" id="answerInput" placeholder="Paste receiver answer code here..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500">
+                  <button onclick="applyAnswerFromInput()" class="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl transition-all">Connect</button>
+                </div>
+
+                <button onclick="openScannerModal('host')" class="w-full py-2.5 border border-slate-700 hover:border-cyan-500 hover:bg-cyan-950/20 text-slate-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-all">
+                  <i data-lucide="camera" class="w-4 h-4 text-cyan-400"></i>
+                  <span>Scan Receiver's Answer QR with Camera</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Joiner (Receiver) Wizard Panel -->
+      <div id="joinerPanel" class="hidden bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-xl">
+        <div class="flex items-center justify-between pb-6 border-b border-slate-800/80 mb-6">
+          <div>
+            <span class="text-xs uppercase font-mono text-emerald-400 font-bold tracking-wider">Step 1 of 2: Receiver Handshake</span>
+            <h2 class="text-xl font-bold text-slate-100 mt-0.5">Pair with the Sender</h2>
+          </div>
+          <button onclick="selectRole(null)" class="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 bg-slate-800 rounded-lg">Change Role</button>
+        </div>
+
+        <div id="joinerStep1" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Camera Scan Button -->
+            <button onclick="openScannerModal('joiner')" class="p-6 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500 rounded-2xl flex flex-col items-center justify-center text-center gap-3 transition-all group">
+              <div class="w-12 h-12 rounded-xl bg-emerald-950/80 border border-emerald-800 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i data-lucide="scan" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-semibold text-slate-200">Scan Sender's QR Code</h4>
+                <p class="text-xs text-slate-400 mt-1">Use your phone or webcam to scan the screen</p>
+              </div>
+            </button>
+
+            <!-- Paste Offer Code -->
+            <div class="p-6 bg-slate-950 border border-slate-800 rounded-2xl flex flex-col justify-between">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Or Paste Sender's Code</label>
+                <textarea id="joinerOfferInput" rows="3" placeholder="Paste the compressed offer string here..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none custom-scrollbar"></textarea>
+              </div>
+              <button onclick="processOfferInput()" class="mt-3 w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-all">Generate Answer</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Joiner Step 2: Show Answer Back to Host -->
+        <div id="joinerStep2" class="hidden mt-6 pt-6 border-t border-slate-800 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div class="flex flex-col items-center justify-center p-6 bg-slate-950 rounded-2xl border border-slate-800">
+            <div id="answerQrContainer" class="my-2"></div>
+            <p class="text-xs text-slate-400 text-center mt-3">Now ask the sender to scan this Answer QR</p>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Or Share Answer Code</label>
+              <div class="relative">
+                <textarea id="answerText" readonly rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-300 focus:outline-none resize-none custom-scrollbar"></textarea>
+                <button onclick="copyToClipboard('answerText', this)" class="absolute top-2 right-2 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  <span>Copy</span>
+                </button>
+              </div>
+            </div>
+            <div class="p-3 bg-emerald-950/20 border border-emerald-900/50 rounded-xl flex items-center gap-3 text-xs text-emerald-400 font-mono">
+              <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+              <span>Listening for incoming data channel connection...</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modal: Live Camera QR Scanner -->
+  <div id="scannerModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="scan" class="w-5 h-5 text-cyan-400"></i>
+          <span class="text-sm font-bold text-slate-200">Point Camera at QR Code</span>
+        </div>
+        <button onclick="closeScannerModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 flex flex-col items-center">
+        <!-- Viewfinder Box -->
+        <div id="qr-reader" class="w-full max-w-[320px] rounded-2xl overflow-hidden bg-black border border-slate-700"></div>
+        <p class="text-xs text-slate-400 text-center mt-3">Hold steady within the frame. Auto-closes upon successful scan.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 border border-slate-700 text-slate-200 px-4 py-3 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2.5">
+    <i id="toastIcon" data-lucide="info" class="w-4 h-4 text-cyan-400"></i>
+    <span id="toastMsg">Notification</span>
+  </div>
+
+  <script>
+    // System State Variables
+    let peerConnection = null;
+    let dataChannel = null;
+    let userRole = null; // 'host' or 'joiner'
+    let html5QrScanner = null;
+    let scannerTarget = null; // 'host' or 'joiner'
+
+    // Transfer Engine State
+    const CHUNK_SIZE = 64 * 1024; // 64 KB per binary slice
+    let stagedFiles = [];
+    let isTransferring = false;
+    let activeReceivingFile = null;
+    let receivedChunks = [];
+    let totalReceivedBytes = 0;
+    let transferStartTime = 0;
+
+    // Initialize Lucide icons on boot
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+
+    // Helper: Show non-intrusive Toast
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+      
+      toastMsg.innerText = message;
+      if (type === 'success') {
+        toastIcon.setAttribute('data-lucide', 'check-circle');
+        toastIcon.className = 'w-4 h-4 text-emerald-400';
+      } else if (type === 'error') {
+        toastIcon.setAttribute('data-lucide', 'alert-triangle');
+        toastIcon.className = 'w-4 h-4 text-rose-400';
+      } else {
+        toastIcon.setAttribute('data-lucide', 'info');
+        toastIcon.className = 'w-4 h-4 text-cyan-400';
+      }
+      lucide.createIcons();
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    // Helper: Copy text using iframe-compatible fallback
+    function copyToClipboard(elementId, btnElement) {
+      const textarea = document.getElementById(elementId);
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+      try {
+        document.execCommand('copy');
+        showToast('Code copied to clipboard!', 'success');
+        if (btnElement) {
+          const original = btnElement.innerHTML;
+          btnElement.innerHTML = '<span class="text-emerald-400">Copied!</span>';
+          setTimeout(() => btnElement.innerHTML = original, 2000);
+        }
+      } catch (err) {
+        showToast('Failed to copy. Please manually select and copy.', 'error');
+      }
+    }
+
+    // Helper: Format bytes to human readable format
+    function formatBytes(bytes, decimals = 2) {
+      if (!bytes || bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    function createPeerConnectionInstance() {
+      // Zero external STUN/TURN servers: enforces pure local network routing
+      const config = {
+        iceServers: []
+      };
+
+      const pc = new RTCPeerConnection(config);
+
+      pc.onicecandidateerror = (e) => {
+        console.warn('ICE candidate error (safe on purely local nets):', e);
+      };
+
+      pc.onconnectionstatechange = () => {
+        updateNetworkBadge(pc.connectionState);
+      };
+
+      return pc;
+    }
+
+    // Wait until local candidates are fully bundled into the SDP offer/answer
+    function waitForIceGathering(pc) {
+      return new Promise((resolve) => {
+        if (pc.iceGatheringState === 'complete') {
+          resolve();
+        } else {
+          const checkState = () => {
+            if (pc.iceGatheringState === 'complete') {
+              pc.removeEventListener('icegatheringstatechange', checkState);
+              resolve();
+            }
+          };
+          pc.addEventListener('icegatheringstatechange', checkState);
+          // Safety timeout in case some browsers don't emit 'complete'
+          setTimeout(resolve, 2000);
+        }
+      });
+    }
+
+    async function selectRole(role) {
+      userRole = role;
+      document.getElementById('roleSelector').classList.toggle('hidden', role !== null);
+      document.getElementById('hostPanel').classList.toggle('hidden', role !== 'host');
+      document.getElementById('joinerPanel').classList.toggle('hidden', role !== 'joiner');
+
+      if (role === 'host') {
+        await initHost();
+      } else if (role === 'joiner') {
+        initJoiner();
+      } else {
+        resetApp();
+      }
+    }
+
+    async function initHost() {
+      peerConnection = createPeerConnectionInstance();
+
+      // Create data channel on the initiator
+      dataChannel = peerConnection.createDataChannel('airlocal-drop', {
+        ordered: true
+      });
+      dataChannel.binaryType = 'arraybuffer';
+      setupDataChannelEvents(dataChannel);
+
+      // Create offer
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      // Wait for local IP ICE candidates to be embedded
+      await waitForIceGathering(peerConnection);
+
+      // Compress SDP string using LZ-String
+      const sdpJson = JSON.stringify(peerConnection.localDescription);
+      const compressedOffer = LZString.compressToEncodedURIComponent(sdpJson);
+
+      document.getElementById('qrLoading').classList.add('hidden');
+      document.getElementById('offerText').value = compressedOffer;
+
+      // Render high-contrast QR code
+      const qrEl = document.getElementById('qrContainer');
+      qrEl.innerHTML = '';
+      qrEl.classList.remove('hidden');
+      new QRCode(qrEl, {
+        text: compressedOffer,
+        width: 256,
+        height: 256,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.L
+      });
+
+      updateNetworkBadge('Gathered Offer');
+    }
+
+    // Apply the scanned/pasted answer from the receiver
+    async function applyAnswerString(answerCompressed) {
+      try {
+        const decompressed = LZString.decompressFromEncodedURIComponent(answerCompressed.trim());
+        const answerObj = JSON.parse(decompressed);
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(answerObj));
+        showToast('Answer matched! Establishing local P2P link...', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('Invalid answer string. Check the code and retry.', 'error');
+      }
+    }
+
+    function applyAnswerFromInput() {
+      const val = document.getElementById('answerInput').value;
+      if (!val) return showToast('Please enter an answer string first', 'error');
+      applyAnswerString(val);
+    }
+
+    function initJoiner() {
+      peerConnection = createPeerConnectionInstance();
+
+      peerConnection.ondatachannel = (event) => {
+        dataChannel = event.channel;
+        dataChannel.binaryType = 'arraybuffer';
+        setupDataChannelEvents(dataChannel);
+      };
+
+      updateNetworkBadge('Awaiting Offer');
+    }
+
+    async function processOfferInput() {
+      const input = document.getElementById('joinerOfferInput').value;
+      if (!input) return showToast('Please paste the sender offer first.', 'error');
+      await handleIncomingOffer(input);
+    }
+
+    async function handleIncomingOffer(offerCompressed) {
+      try {
+        const decompressed = LZString.decompressFromEncodedURIComponent(offerCompressed.trim());
+        const offerObj = JSON.parse(decompressed);
+        
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offerObj));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        await waitForIceGathering(peerConnection);
+
+        const answerJson = JSON.stringify(peerConnection.localDescription);
+        const compressedAnswer = LZString.compressToEncodedURIComponent(answerJson);
+
+        document.getElementById('joinerStep1').classList.add('hidden');
+        document.getElementById('joinerStep2').classList.remove('hidden');
+        document.getElementById('answerText').value = compressedAnswer;
+
+        // Render Answer QR
+        const qrEl = document.getElementById('answerQrContainer');
+        qrEl.innerHTML = '';
+        new QRCode(qrEl, {
+          text: compressedAnswer,
+          width: 256,
+          height: 256,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.L
+        });
+
+        showToast('Answer produced. Display to sender or copy code.', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('Could not parse offer. Ensure the entire code was scanned.', 'error');
+      }
+    }
+
+    function setupDataChannelEvents(channel) {
+      channel.onopen = () => {
+        updateNetworkBadge('Connected');
+        document.getElementById('setupWizard').classList.add('hidden');
+        document.getElementById('transferView').classList.remove('hidden');
+        document.getElementById('transferView').classList.add('flex');
+        logMessage('Direct peer-to-peer data channel successfully opened.', 'success');
+        playChime(440, 0.1);
+      };
+
+      channel.onclose = () => {
+        updateNetworkBadge('Disconnected');
+        logMessage('Data channel disconnected.', 'error');
+      };
+
+      channel.onerror = (err) => {
+        console.error('Data channel error:', err);
+        logMessage('Data channel error occurred.', 'error');
+      };
+
+      channel.onmessage = handleIncomingDataChunk;
+    }
+
+    function handleIncomingDataChunk(event) {
+      if (typeof event.data === 'string') {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'START_FILE') {
+          activeReceivingFile = msg;
+          receivedChunks = [];
+          totalReceivedBytes = 0;
+          transferStartTime = performance.now();
+          document.getElementById('activeFileName').innerText = `Receiving: ${msg.name}`;
+          logMessage(`Inbound transfer initiated: ${msg.name} (${formatBytes(msg.size)})`);
+        } else if (msg.type === 'END_FILE') {
+          // Reassemble blob and trigger save
+          const fileBlob = new Blob(receivedChunks, { type: activeReceivingFile.mimeType || 'application/octet-stream' });
+          const downloadUrl = URL.createObjectURL(fileBlob);
+          
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = activeReceivingFile.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          setTimeout(() => URL.revokeObjectURL(downloadUrl), 4000);
+
+          logMessage(`Completed: ${activeReceivingFile.name} saved directly to device!`, 'success');
+          showToast(`Downloaded ${activeReceivingFile.name}`, 'success');
+          playChime(660, 0.2);
+
+          // Reset progress
+          document.getElementById('progressBar').style.width = '0%';
+          document.getElementById('progressPercentage').innerText = '0%';
+          document.getElementById('activeFileName').innerText = 'Ready for next file';
+          document.getElementById('speedMetric').innerText = '0.0 MB/s';
+          receivedChunks = [];
+          activeReceivingFile = null;
+        }
+      } else {
+        // Binary chunk received
+        receivedChunks.push(event.data);
+        totalReceivedBytes += event.data.byteLength;
+
+        if (activeReceivingFile) {
+          const percent = Math.min(100, Math.round((totalReceivedBytes / activeReceivingFile.size) * 100));
+          document.getElementById('progressBar').style.width = `${percent}%`;
+          document.getElementById('progressPercentage').innerText = `${percent}%`;
+          document.getElementById('bytesTransferred').innerText = `${formatBytes(totalReceivedBytes)} / ${formatBytes(activeReceivingFile.size)}`;
+
+          // Calculate transmission speed & ETA
+          const elapsedSec = (performance.now() - transferStartTime) / 1000;
+          if (elapsedSec > 0.5) {
+            const bytesPerSec = totalReceivedBytes / elapsedSec;
+            const mbPerSec = (bytesPerSec / (1024 * 1024)).toFixed(1);
+            document.getElementById('speedMetric').innerText = `${mbPerSec} MB/s`;
+
+            const remainingBytes = activeReceivingFile.size - totalReceivedBytes;
+            const etaSec = Math.max(0, Math.round(remainingBytes / bytesPerSec));
+            document.getElementById('etaEstimate').innerText = `ETA: ${etaSec}s`;
+          }
+        }
+      }
+    }
+
+    async function sendSelectedFiles() {
+      if (!stagedFiles.length || !dataChannel || dataChannel.readyState !== 'open') {
+        return showToast('No files selected or channel not ready.', 'error');
+      }
+
+      isTransferring = true;
+      document.getElementById('startSendBtn').disabled = true;
+      document.getElementById('startSendBtn').classList.add('opacity-50');
+
+      // Set low threshold to 1MB so the browser triggers the event when space clears
+      dataChannel.bufferedAmountLowThreshold = 1024 * 1024;
+
+      for (let i = 0; i < stagedFiles.length; i++) {
+        const file = stagedFiles[i];
+        document.getElementById('activeFileName').innerText = `Sending: ${file.name}`;
+        logMessage(`Transmitting: ${file.name} (${formatBytes(file.size)})`);
+
+        // 1. Send file metadata header
+        dataChannel.send(JSON.stringify({
+          type: 'START_FILE',
+          name: file.name,
+          size: file.size,
+          mimeType: file.type
+        }));
+
+        let offset = 0;
+        transferStartTime = performance.now();
+
+        // 2. Stream chunk by chunk
+        while (offset < file.size) {
+          // Backpressure check: wait if RTCDataChannel buffer has > 4MB queued
+          if (dataChannel.bufferedAmount > 4 * 1024 * 1024) {
+            await new Promise((resolve) => {
+              const listener = () => {
+                dataChannel.removeEventListener('bufferedamountlow', listener);
+                resolve();
+              };
+              dataChannel.addEventListener('bufferedamountlow', listener);
+            });
+          }
+
+          const slice = file.slice(offset, offset + CHUNK_SIZE);
+          const buffer = await slice.arrayBuffer();
+          dataChannel.send(buffer);
+
+          offset += buffer.byteLength;
+
+          // Update Progress UI
+          const percent = Math.min(100, Math.round((offset / file.size) * 100));
+          document.getElementById('progressBar').style.width = `${percent}%`;
+          document.getElementById('progressPercentage').innerText = `${percent}%`;
+          document.getElementById('bytesTransferred').innerText = `${formatBytes(offset)} / ${formatBytes(file.size)}`;
+
+          // Speed & ETA
+          const elapsedSec = (performance.now() - transferStartTime) / 1000;
+          if (elapsedSec > 0.5) {
+            const bytesPerSec = offset / elapsedSec;
+            const mbPerSec = (bytesPerSec / (1024 * 1024)).toFixed(1);
+            document.getElementById('speedMetric').innerText = `${mbPerSec} MB/s`;
+
+            const remainingBytes = file.size - offset;
+            const etaSec = Math.max(0, Math.round(remainingBytes / bytesPerSec));
+            document.getElementById('etaEstimate').innerText = `ETA: ${etaSec}s`;
+          }
+        }
+
+        // 3. Send end of file delimiter
+        dataChannel.send(JSON.stringify({ type: 'END_FILE' }));
+        logMessage(`Sent: ${file.name} successfully!`, 'success');
+      }
+
+      showToast('All files transferred successfully!', 'success');
+      playChime(880, 0.2);
+
+      // Clean up staged list
+      stagedFiles = [];
+      document.getElementById('stagedContainer').classList.add('hidden');
+      document.getElementById('stagedFilesList').innerHTML = '';
+      document.getElementById('startSendBtn').disabled = false;
+      document.getElementById('startSendBtn').classList.remove('opacity-50');
+      document.getElementById('progressBar').style.width = '0%';
+      document.getElementById('progressPercentage').innerText = '0%';
+      document.getElementById('activeFileName').innerText = 'Idle';
+      document.getElementById('speedMetric').innerText = '0.0 MB/s';
+      isTransferring = false;
+    }
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-cyan-400', 'bg-cyan-950/20');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-cyan-400', 'bg-cyan-950/20');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-cyan-400', 'bg-cyan-950/20');
+      if (e.dataTransfer.files.length) {
+        handleFileSelection(e.dataTransfer.files);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) {
+        handleFileSelection(e.target.files);
+      }
+    });
+
+    function handleFileSelection(files) {
+      for (const file of files) {
+        stagedFiles.push(file);
+      }
+      renderStagedList();
+    }
+
+    function renderStagedList() {
+      const container = document.getElementById('stagedContainer');
+      const list = document.getElementById('stagedFilesList');
+      list.innerHTML = '';
+
+      if (stagedFiles.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      stagedFiles.forEach((f, idx) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800';
+        item.innerHTML = `
+          <div class="flex items-center space-x-2 truncate pr-2">
+            <i data-lucide="file" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+            <span class="truncate">${f.name}</span>
+            <span class="text-slate-500 text-[10px]">(${formatBytes(f.size)})</span>
+          </div>
+          <button onclick="removeStagedFile(${idx})" class="text-slate-500 hover:text-rose-400 p-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        `;
+        list.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    function removeStagedFile(index) {
+      stagedFiles.splice(index, 1);
+      renderStagedList();
+    }
+
+    function openScannerModal(target) {
+      scannerTarget = target;
+      document.getElementById('scannerModal').classList.remove('hidden');
+
+      html5QrScanner = new Html5Qrcode("qr-reader");
+      const config = { fps: 15, qrbox: { width: 250, height: 250 } };
+
+      html5QrScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          // Successful QR scan
+          closeScannerModal();
+          if (scannerTarget === 'host') {
+            applyAnswerString(decodedText);
+          } else if (scannerTarget === 'joiner') {
+            handleIncomingOffer(decodedText);
+          }
+        },
+        (errorMessage) => {
+          // frame parse error (silent)
+        }
+      ).catch((err) => {
+        console.error("Camera startup error", err);
+        showToast('Camera access denied or unavailable', 'error');
+        closeScannerModal();
+      });
+    }
+
+    function closeScannerModal() {
+      if (html5QrScanner) {
+        html5QrScanner.stop().then(() => {
+          html5QrScanner.clear();
+          html5QrScanner = null;
+        }).catch(() => {
+          html5QrScanner = null;
+        });
+      }
+      document.getElementById('scannerModal').classList.add('hidden');
+    }
+
+    function updateNetworkBadge(status) {
+      const dot = document.getElementById('statusIndicatorDot');
+      const text = document.getElementById('statusIndicatorText');
+
+      text.innerText = status;
+      if (status === 'Connected') {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400';
+      } else if (status === 'Gathered Offer' || status === 'Awaiting Offer') {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse';
+      } else if (status === 'Disconnected') {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+      } else {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse';
+      }
+    }
+
+    function logMessage(text, type = 'info') {
+      const logs = document.getElementById('transferLogs');
+      const row = document.createElement('div');
+      row.className = 'flex items-center space-x-2 text-[11px]';
+      
+      const time = new Date().toLocaleTimeString([], { hour12: false });
+      let color = 'text-slate-400';
+      if (type === 'success') color = 'text-emerald-400';
+      if (type === 'error') color = 'text-rose-400';
+
+      row.innerHTML = `<span class="text-slate-600">[${time}]</span> <span class="${color}">${text}</span>`;
+      logs.appendChild(row);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    // Zero-asset sound synth via Web Audio API
+    function playChime(freq = 440, duration = 0.15) {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // Complete session reset
+    function resetApp() {
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      dataChannel = null;
+      userRole = null;
+      stagedFiles = [];
+      receivedChunks = [];
+      
+      document.getElementById('setupWizard').classList.remove('hidden');
+      document.getElementById('transferView').classList.add('hidden');
+      document.getElementById('roleSelector').classList.remove('hidden');
+      document.getElementById('hostPanel').classList.add('hidden');
+      document.getElementById('joinerPanel').classList.add('hidden');
+      document.getElementById('joinerStep1').classList.remove('hidden');
+      document.getElementById('joinerStep2').classList.add('hidden');
+      document.getElementById('qrLoading').classList.remove('hidden');
+      document.getElementById('qrContainer').classList.add('hidden');
+      document.getElementById('offerText').value = '';
+      document.getElementById('answerInput').value = '';
+      document.getElementById('joinerOfferInput').value = '';
+      document.getElementById('answerText').value = '';
+      updateNetworkBadge('Idle');
+      showToast('Session reset', 'info');
+    }
+  </script>
+</body>
+</html>

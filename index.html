@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AirLocal Ultra - Wire Speed P2P Drop</title>
+  <title>AirLocal Ultra - Micro QR P2P Drop</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -36,7 +36,7 @@
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #0ea5e9; }
     #offerQr, #answerQr {
       display: inline-flex;
-      padding: 12px;
+      padding: 14px;
       background: #ffffff;
       border-radius: 1rem;
       box-shadow: 0 10px 30px -5px rgba(0,0,0,0.7);
@@ -60,9 +60,9 @@
         <div>
           <div class="flex items-center space-x-2">
             <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">AirLocal Ultra</span>
-            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">4x Unordered</span>
+            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">Micro-QR (~140B)</span>
           </div>
-          <p class="text-[11px] text-slate-400">Zero Cloud • Native Wi-Fi Wire Speed • Direct Memory Pipeline</p>
+          <p class="text-[11px] text-slate-400">Instant Optical Scan • 4x Unordered Streams • Max Hardware LAN Speed</p>
         </div>
       </div>
 
@@ -100,15 +100,15 @@
           <div>
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs uppercase font-mono text-sky-400 font-bold tracking-wider">Step 1: Host Offer</span>
-              <span id="offerSizeBadge" class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">~320 bytes</span>
+              <span id="offerSizeBadge" class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">~140 bytes</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan with Phone (Device B)</h3>
-            <p class="text-xs text-slate-400 mt-1">Contains full SDP with local socket candidate routes.</p>
+            <p class="text-xs text-slate-400 mt-1">High-contrast, low-density QR code for instant phone focus.</p>
 
             <div class="my-5 p-4 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col items-center justify-center min-h-[240px]">
               <div id="offerLoader" class="flex flex-col items-center gap-2 py-8">
                 <div class="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
-                <span class="text-xs font-mono text-slate-400">Binding local Wi-Fi endpoints...</span>
+                <span class="text-xs font-mono text-slate-400">Generating low-density QR...</span>
               </div>
               <div id="offerQr" class="hidden"></div>
             </div>
@@ -116,7 +116,7 @@
           <div class="space-y-2">
             <button onclick="copyOfferPayload()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-[0.99] border border-slate-700 rounded-xl text-xs font-mono text-slate-300 transition-all flex items-center justify-center gap-2">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-              <span>Copy Compact Offer String</span>
+              <span>Copy Micro Offer String</span>
             </button>
           </div>
         </div>
@@ -128,7 +128,7 @@
               <span id="hostStatusBadge" class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Awaiting Phone</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan Phone's Answer QR</h3>
-            <p class="text-xs text-slate-400 mt-1">Use desktop camera or paste the answer payload to establish connection.</p>
+            <p class="text-xs text-slate-400 mt-1">Point desktop camera at the phone's answer screen.</p>
 
             <div class="my-5 flex flex-col gap-3">
               <button id="hostStartCamBtn" onclick="toggleCameraScanner('host')" class="w-full py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2">
@@ -167,7 +167,7 @@
               <span class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">Camera Scan</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan Host's Offer QR</h3>
-            <p class="text-xs text-slate-400 mt-1">Point your phone camera at the QR code displayed on the desktop screen.</p>
+            <p class="text-xs text-slate-400 mt-1">Point your phone camera at the large QR code on the desktop.</p>
 
             <div class="my-5 flex flex-col gap-3">
               <button id="joinStartCamBtn" onclick="toggleCameraScanner('join')" class="w-full py-3 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20">
@@ -182,7 +182,7 @@
               </div>
 
               <div class="relative">
-                <textarea id="joinManualOffer" rows="3" placeholder="Or paste compact offer string here..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-sky-500 transition-colors custom-scrollbar"></textarea>
+                <textarea id="joinManualOffer" rows="3" placeholder="Or paste offer string here..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-sky-500 transition-colors custom-scrollbar"></textarea>
               </div>
 
               <button onclick="applyManualOffer()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5">
@@ -192,7 +192,7 @@
             </div>
           </div>
           <div class="text-[11px] text-slate-500 font-mono text-center">
-            In-browser jsQR decoding • Pure offline client
+            Instant recognition • Low-density matrix
           </div>
         </div>
 
@@ -222,7 +222,7 @@
           <div class="space-y-2">
             <button id="copyAnswerBtn" disabled onclick="copyAnswerPayload()" class="w-full py-2 bg-slate-800 opacity-50 border border-slate-700 rounded-xl text-xs font-mono text-slate-300 transition-all flex items-center justify-center gap-2">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-              <span>Copy Compact Answer String</span>
+              <span>Copy Micro Answer String</span>
             </button>
           </div>
         </div>
@@ -241,7 +241,7 @@
               <h3 class="text-sm font-semibold text-slate-200">Local Wi-Fi Pipe Active</h3>
               <span id="diskStreamIndicator" class="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-950 border border-emerald-700/60 text-emerald-300">Stream-to-Disk</span>
             </div>
-            <p class="text-xs text-slate-400 font-mono mt-0.5">4x Unordered Channels • 64KB Slices • Direct LAN Wire Speed</p>
+            <p class="text-xs text-slate-400 font-mono mt-0.5">4x Unordered Channels • 64KB Slices • Max Wire Speed</p>
           </div>
         </div>
 
@@ -442,39 +442,89 @@
       logs.scrollTop = logs.scrollHeight;
     }
 
-    // Retains complete RFC SDP compliance while stripping redundant non-host candidates
-    function compressSDP(sdp, type) {
-      const lines = sdp.split('\r\n').filter(line => {
-        if (!line) return false;
-        if (line.startsWith('a=candidate:')) {
-          return line.includes(' typ host') && !line.includes(':');
+    // ==========================================
+    // MICRO-SDP ENCODER (~120 - 150 BYTES)
+    // ==========================================
+    function encodeMicroSDP(sdp, type) {
+      const lines = sdp.split('\r\n');
+      let ufrag = '', pwd = '', fp = '', ip = '', port = '';
+
+      for (const line of lines) {
+        if (line.startsWith('a=ice-ufrag:')) ufrag = line.substring(12);
+        else if (line.startsWith('a=ice-pwd:')) pwd = line.substring(10);
+        else if (line.startsWith('a=fingerprint:sha-256 ')) {
+          // Compress 95-char colon string into raw 64-char hex
+          fp = line.substring(22).replace(/:/g, '');
+        } else if (line.startsWith('a=candidate:') && !ip) {
+          const parts = line.split(' ');
+          // Only pick host candidate with an actual dot IPv4
+          if (parts[7] === 'host' && parts[4].includes('.') && !parts[4].endsWith('.local')) {
+            port = parts[5];
+            ip = parts[4];
+          }
         }
-        return true;
-      });
-      const cleanSdp = lines.join('\r\n') + '\r\n';
-      const payload = JSON.stringify({ t: type === 'offer' ? 'o' : 'a', s: cleanSdp });
-      const deflated = pako.deflate(payload, { level: 9 });
-      let binary = '';
-      for (let i = 0; i < deflated.length; i++) binary += String.fromCharCode(deflated[i]);
-      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      }
+
+      // Format: type|ufrag|pwd|hexFingerprint|ip|port
+      const micro = `${type === 'offer' ? 'O' : 'A'}|${ufrag}|${pwd}|${fp}|${ip}|${port}`;
+      const compressed = pako.deflate(micro, { level: 9 });
+      
+      let bin = '';
+      for (let i = 0; i < compressed.length; i++) bin += String.fromCharCode(compressed[i]);
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
-    function decompressSDP(safeBase64) {
-      let base64 = safeBase64.replace(/-/g, '+').replace(/_/g, '/');
-      while (base64.length % 4) base64 += '=';
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const jsonStr = pako.inflate(bytes, { to: 'string' });
-      const obj = JSON.parse(jsonStr);
+    function decodeMicroSDP(safeBase64) {
+      let b64 = safeBase64.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      
+      const raw = pako.inflate(bytes, { to: 'string' });
+      const [typeFlag, ufrag, pwd, fpRaw, ip, port] = raw.split('|');
+      const isOffer = typeFlag === 'O';
+
+      // Reconstruct colon-delimited SHA-256 fingerprint
+      const fp = fpRaw.match(/.{1,2}/g).join(':').toUpperCase();
+      const setup = isOffer ? 'actpass' : 'active';
+      const connIp = (ip && ip.length > 6) ? ip : '0.0.0.0';
+
+      const sdp = [
+        'v=0',
+        'o=- 1000000000000000000 2 IN IP4 127.0.0.1',
+        's=-',
+        't=0 0',
+        'a=group:BUNDLE 0',
+        'a=msid-semantic: WMS',
+        'm=application 9 UDP/DTLS/SCTP webrtc-datachannel',
+        `c=IN IP4 ${connIp}`,
+        `a=ice-ufrag:${ufrag}`,
+        `a=ice-pwd:${pwd}`,
+        `a=fingerprint:sha-256 ${fp}`,
+        `a=setup:${setup}`,
+        'a=mid:0',
+        'a=sctp-port:5000',
+        'a=max-message-size:262144'
+      ];
+
+      if (ip && port) {
+        sdp.push(`a=candidate:1 1 udp 2122260223 ${ip} ${port} typ host`);
+      }
+      sdp.push('');
+
       return {
-        type: obj.t === 'o' ? 'offer' : 'answer',
-        sdp: obj.s
+        type: isOffer ? 'offer' : 'answer',
+        sdp: sdp.join('\r\n')
       };
     }
 
     function createPurePeerConnection() {
-      const connection = new RTCPeerConnection({ iceServers: [] });
+      const connection = new RTCPeerConnection({
+        iceServers: [],
+        iceTransportPolicy: 'all',
+        bundlePolicy: 'max-bundle'
+      });
 
       connection.oniceconnectionstatechange = () => {
         logTrace(`ICE Link: ${connection.iceConnectionState}`);
@@ -504,7 +554,7 @@
             timer = setTimeout(() => {
               connection.removeEventListener('icecandidate', candidateHandler);
               resolve();
-            }, 500);
+            }, 400);
           } else {
             clearTimeout(timer);
             connection.removeEventListener('icecandidate', candidateHandler);
@@ -516,7 +566,7 @@
         setTimeout(() => {
           connection.removeEventListener('icecandidate', candidateHandler);
           resolve();
-        }, 1800);
+        }, 1500);
       });
 
       return { connection, gatheringComplete };
@@ -544,24 +594,25 @@
 
       await gatheringComplete;
 
-      compactOfferString = compressSDP(pc.localDescription.sdp, 'offer');
-      document.getElementById('offerSizeBadge').innerText = `${compactOfferString.length} bytes`;
+      compactOfferString = encodeMicroSDP(pc.localDescription.sdp, 'offer');
+      document.getElementById('offerSizeBadge').innerText = `${compactOfferString.length} bytes (Micro-QR)`;
 
       const qrEl = document.getElementById('offerQr');
       qrEl.innerHTML = '';
       qrEl.classList.remove('hidden');
       document.getElementById('offerLoader').classList.add('hidden');
 
+      // Creates a clean, low-density QR code that scans instantly
       new QRCode(qrEl, {
         text: compactOfferString,
-        width: 220,
-        height: 220,
+        width: 240,
+        height: 240,
         colorDark: '#000000',
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.L
       });
 
-      logTrace('Host ready. Scan Step 1 with phone.', 'success');
+      logTrace(`Host ready. Micro-QR rendered (${compactOfferString.length} bytes).`, 'success');
     }
 
     async function handleOfferInput(offerStr) {
@@ -575,7 +626,7 @@
 
       try {
         const rawClean = offerStr.trim();
-        const reconstructedOffer = decompressSDP(rawClean);
+        const reconstructedOffer = decodeMicroSDP(rawClean);
 
         if (pc) {
           try { pc.close(); } catch(e) {}
@@ -601,9 +652,9 @@
 
         await gatheringComplete;
 
-        compactAnswerString = compressSDP(pc.localDescription.sdp, 'answer');
+        compactAnswerString = encodeMicroSDP(pc.localDescription.sdp, 'answer');
 
-        document.getElementById('answerSizeBadge').innerText = `${compactAnswerString.length} bytes`;
+        document.getElementById('answerSizeBadge').innerText = `${compactAnswerString.length} bytes (Micro-QR)`;
         answerLoader.classList.add('hidden');
 
         const ansQr = document.getElementById('answerQr');
@@ -612,8 +663,8 @@
 
         new QRCode(ansQr, {
           text: compactAnswerString,
-          width: 220,
-          height: 220,
+          width: 240,
+          height: 240,
           colorDark: '#000000',
           colorLight: '#ffffff',
           correctLevel: QRCode.CorrectLevel.L
@@ -654,7 +705,7 @@
           throw new Error(`Signaling busy (${pc.signalingState})`);
         }
 
-        const reconstructedAnswer = decompressSDP(answerStr.trim());
+        const reconstructedAnswer = decodeMicroSDP(answerStr.trim());
         await pc.setRemoteDescription(new RTCSessionDescription(reconstructedAnswer));
 
         showToast('Answer accepted! Connecting socket...', 'info');
@@ -709,8 +760,8 @@
 
         const scan = () => {
           if (video.readyState >= video.HAVE_CURRENT_DATA && video.videoWidth > 0) {
-            canvas.height = video.videoHeight;
             canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(imageData.data, imageData.width, imageData.height, {
@@ -1014,14 +1065,14 @@
     function copyOfferPayload() {
       if (!compactOfferString) return;
       navigator.clipboard.writeText(compactOfferString).then(() => {
-        showToast('Offer payload copied to clipboard', 'success');
+        showToast('Micro offer copied to clipboard', 'success');
       });
     }
 
     function copyAnswerPayload() {
       if (!compactAnswerString) return;
       navigator.clipboard.writeText(compactAnswerString).then(() => {
-        showToast('Answer payload copied to clipboard', 'success');
+        showToast('Micro answer copied to clipboard', 'success');
       });
     }
 

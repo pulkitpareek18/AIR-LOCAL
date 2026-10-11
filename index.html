@@ -60,9 +60,9 @@
         <div>
           <div class="flex items-center space-x-2">
             <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">AirLocal Ultra</span>
-            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">Unordered SCTP</span>
+            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">Fast ICE Connect</span>
           </div>
-          <p class="text-[11px] text-slate-400">Zero Head-of-Line Blocking • 4x Striped Channels • Direct Wi-Fi</p>
+          <p class="text-[11px] text-slate-400">Zero-Server Local LAN • Unordered SCTP • Direct Hardware Speed</p>
         </div>
       </div>
 
@@ -103,12 +103,12 @@
               <span id="offerSizeBadge" class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">~240 bytes</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan with Phone (Device B)</h3>
-            <p class="text-xs text-slate-400 mt-1">Contains stripped SDP offer configured for 4 unordered channels.</p>
+            <p class="text-xs text-slate-400 mt-1">Contains complete ICE candidates and local IP bindings.</p>
 
             <div class="my-5 p-4 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col items-center justify-center min-h-[240px]">
               <div id="offerLoader" class="flex flex-col items-center gap-2 py-8">
                 <div class="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
-                <span class="text-xs font-mono text-slate-400">Gathering LAN candidates...</span>
+                <span id="offerLoaderText" class="text-xs font-mono text-slate-400">Harvesting network interfaces...</span>
               </div>
               <div id="offerQr" class="hidden"></div>
             </div>
@@ -125,10 +125,10 @@
           <div>
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs uppercase font-mono text-emerald-400 font-bold tracking-wider">Step 2: Scan Answer</span>
-              <span class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Handshake</span>
+              <span id="hostStatusBadge" class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Awaiting Answer</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan Phone's Answer QR</h3>
-            <p class="text-xs text-slate-400 mt-1">Use desktop webcam or paste the phone's answer string below.</p>
+            <p class="text-xs text-slate-400 mt-1">Point desktop camera at the phone or paste the answer string.</p>
 
             <div class="my-5 flex flex-col gap-3">
               <button id="hostStartCamBtn" onclick="toggleCameraScanner('host')" class="w-full py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2">
@@ -143,7 +143,7 @@
               </div>
 
               <div class="relative">
-                <textarea id="hostManualAnswer" rows="3" placeholder="Or paste compact answer string from phone here..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors custom-scrollbar"></textarea>
+                <textarea id="hostManualAnswer" rows="3" placeholder="Or paste answer string here..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors custom-scrollbar"></textarea>
               </div>
 
               <button onclick="applyManualAnswer()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20">
@@ -153,7 +153,7 @@
             </div>
           </div>
           <div class="text-[11px] text-slate-500 font-mono text-center">
-            Zero third-party signaling • Direct local peer connection
+            P2P Direct Handshake • Zero Cloud Dependencies
           </div>
         </div>
       </div>
@@ -203,7 +203,7 @@
               <span id="answerSizeBadge" class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Waiting for scan</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Show to Host Desktop</h3>
-            <p class="text-xs text-slate-400 mt-1">Once you scan the offer above, your phone will render this answer QR code.</p>
+            <p class="text-xs text-slate-400 mt-1">Once generated, show this code to the desktop webcam.</p>
 
             <div class="my-5 p-4 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col items-center justify-center min-h-[240px]">
               <div id="answerPlaceholder" class="text-center py-10 px-4">
@@ -211,6 +211,10 @@
                   <i data-lucide="qr-code" class="w-6 h-6"></i>
                 </div>
                 <p class="text-xs text-slate-400">Scan Host Offer in Step 1 to generate Answer</p>
+              </div>
+              <div id="answerLoader" class="hidden flex flex-col items-center gap-2 py-8">
+                <div class="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-xs font-mono text-slate-400">Gathering phone network routes...</span>
               </div>
               <div id="answerQr" class="hidden"></div>
             </div>
@@ -325,11 +329,10 @@
   </div>
 
   <script>
-    // 4 Unordered Striped DataChannels: Eliminates Head-of-Line stalls
     const NUM_CHANNELS = 4;
-    const CHUNK_SIZE = 64 * 1024;              // 64 KB slice
-    const BUFFER_HIGH_WATER = 2 * 1024 * 1024; // 2 MB per channel
-    const BUFFER_LOW_WATER = 512 * 1024;       // 512 KB resume floor
+    const CHUNK_SIZE = 64 * 1024;
+    const BUFFER_HIGH_WATER = 2 * 1024 * 1024;
+    const BUFFER_LOW_WATER = 512 * 1024;
 
     let pc = null;
     let channels = [];
@@ -339,7 +342,6 @@
     let compactAnswerString = '';
     let isProcessingPayload = false;
 
-    // Receiving State
     let writableStream = null;
     let activeFileMeta = null;
     let fallbackSparseChunks = [];
@@ -521,37 +523,69 @@
       return { type, sdp: sdp.join('\r\n') };
     }
 
+    // Complete ICE Harvester: Eliminates premature timeouts
     function createPurePeerConnection() {
       const connection = new RTCPeerConnection({ iceServers: [] });
 
       connection.oniceconnectionstatechange = () => {
-        logTrace(`ICE Link State: ${connection.iceConnectionState}`);
+        logTrace(`ICE Link: ${connection.iceConnectionState}`);
         if (connection.iceConnectionState === 'connected' || connection.iceConnectionState === 'completed') {
           isConnected = true;
           updateStatus('Connected (Local Wi-Fi)', 'connected');
         } else if (connection.iceConnectionState === 'failed') {
-          logTrace('ICE check failed. Verify both devices share the exact same subnet.', 'error');
+          logTrace('ICE binding failed. Check that both devices share the exact Wi-Fi network.', 'error');
+        }
+      };
+
+      connection.onconnectionstatechange = () => {
+        logTrace(`Connection State: ${connection.connectionState}`);
+        if (connection.connectionState === 'connected') {
+          isConnected = true;
+          updateStatus('Connected (Local Wi-Fi)', 'connected');
         }
       };
 
       const gatheringComplete = new Promise((resolve) => {
-        if (connection.iceGatheringState === 'complete') {
-          resolve();
-        } else {
-          const checkState = () => {
-            if (connection.iceGatheringState === 'complete') {
-              connection.removeEventListener('icegatheringstatechange', checkState);
-              resolve();
+        let hasHostCandidate = false;
+        let fallbackTimer = null;
+
+        const candidateListener = (e) => {
+          if (e.candidate && e.candidate.type === 'host') {
+            hasHostCandidate = true;
+            if (!fallbackTimer) {
+              fallbackTimer = setTimeout(() => {
+                connection.removeEventListener('icecandidate', candidateListener);
+                resolve();
+              }, 600); // Allow additional network interfaces to register
             }
-          };
-          connection.addEventListener('icegatheringstatechange', checkState);
-          setTimeout(resolve, 1800);
-        }
+          } else if (!e.candidate) {
+            connection.removeEventListener('icecandidate', candidateListener);
+            resolve();
+          }
+        };
+
+        connection.addEventListener('icecandidate', candidateListener);
+
+        const stateListener = () => {
+          if (connection.iceGatheringState === 'complete') {
+            connection.removeEventListener('icegatheringstatechange', stateListener);
+            connection.removeEventListener('icecandidate', candidateListener);
+            resolve();
+          }
+        };
+        connection.addEventListener('icegatheringstatechange', stateListener);
+
+        // Maximum fail-safe timeout
+        setTimeout(() => {
+          connection.removeEventListener('icecandidate', candidateListener);
+          connection.removeEventListener('icegatheringstatechange', stateListener);
+          resolve();
+        }, 3000);
       });
+
       return { connection, gatheringComplete };
     }
 
-    // Host: Creates 4 Unordered DataChannels ({ ordered: false })
     async function initHostSession() {
       if (pc) {
         try { pc.close(); } catch(e) {}
@@ -563,7 +597,6 @@
       pc = connection;
 
       for (let i = 0; i < NUM_CHANNELS; i++) {
-        // Unordered delivery prevents TCP/SCTP Head-of-Line blocking
         const ch = pc.createDataChannel(`airlocal-${i}`, { ordered: false });
         ch.binaryType = 'arraybuffer';
         setupDataChannelEvents(ch, i);
@@ -592,13 +625,17 @@
         correctLevel: QRCode.CorrectLevel.L
       });
 
-      logTrace('Host ready with 4 unordered DataChannels.', 'success');
+      logTrace('Host ready with network candidates.', 'success');
     }
 
-    // Joiner: Receives 4 Unordered DataChannels
     async function handleOfferInput(offerStr) {
       if (isProcessingPayload) return;
       isProcessingPayload = true;
+
+      const answerLoader = document.getElementById('answerLoader');
+      const answerPlaceholder = document.getElementById('answerPlaceholder');
+      answerPlaceholder.classList.add('hidden');
+      answerLoader.classList.remove('hidden');
 
       try {
         const rawClean = offerStr.trim();
@@ -631,7 +668,7 @@
         compactAnswerString = pruneAndCompressSDP(pc.localDescription.sdp, 'answer');
 
         document.getElementById('answerSizeBadge').innerText = `${compactAnswerString.length} bytes`;
-        document.getElementById('answerPlaceholder').classList.add('hidden');
+        answerLoader.classList.add('hidden');
 
         const ansQr = document.getElementById('answerQr');
         ansQr.innerHTML = '';
@@ -654,6 +691,8 @@
         playChime(659.25, 0.15);
       } catch (err) {
         console.error('Failed to process offer:', err);
+        answerLoader.classList.add('hidden');
+        answerPlaceholder.classList.remove('hidden');
         showToast(`Scan Error: ${err.message || 'Corrupt QR data'}`, 'error');
       } finally {
         isProcessingPayload = false;
@@ -683,7 +722,8 @@
         await pc.setRemoteDescription(new RTCSessionDescription(reconstructedAnswer));
 
         showToast('Answer applied! Connecting local pipe...', 'info');
-        logTrace('Remote answer accepted. Starting ICE checks...', 'info');
+        logTrace('Remote answer accepted. Starting ICE connectivity checks...', 'info');
+        document.getElementById('hostStatusBadge').innerText = 'ICE Negotiating';
         stopCameraScanner();
       } catch (err) {
         console.error(err);
@@ -777,7 +817,7 @@
           document.getElementById('pairingContainer').classList.add('hidden');
           document.getElementById('transferView').classList.remove('hidden');
           document.getElementById('transferView').classList.add('flex');
-          logTrace(`Unordered WebRTC striping active (Channel #${idx}).`, 'success');
+          logTrace(`Direct WebRTC striping active (Channel #${idx}).`, 'success');
           showToast('Devices successfully paired!', 'success');
           playChime(659.25, 0.2);
           stopCameraScanner();
@@ -801,7 +841,6 @@
       };
     }
 
-    // Direct-to-Disk Random-Access Receiver with .seek(offset)
     async function handleIncomingDataChunk(data) {
       if (typeof data === 'string') {
         let msg = null;
@@ -821,9 +860,8 @@
             try {
               const fileHandle = await window.showSaveFilePicker({ suggestedName: msg.name });
               writableStream = await fileHandle.createWritable();
-              // Pre-allocate file size so unordered seeks don't fragment
               await writableStream.truncate(msg.size);
-              logTrace('Direct-to-disk random access stream ready.', 'success');
+              logTrace('Direct-to-disk stream ready.', 'success');
             } catch (err) {
               writableStream = null;
               showToast('Disk IO cancelled, using RAM buffer', 'info');
@@ -835,7 +873,6 @@
             writableStream = null;
             logTrace(`Flushed to disk: ${activeFileMeta.name}`, 'success');
           } else {
-            // Re-order chunks by byte offset for RAM/Blob fallback
             fallbackSparseChunks.sort((a, b) => a.offset - b.offset);
             const orderedPayloads = fallbackSparseChunks.map(c => c.payload);
             const blob = new Blob(orderedPayloads, { type: activeFileMeta.mimeType || 'application/octet-stream' });
@@ -862,15 +899,13 @@
           fallbackSparseChunks = [];
         }
       } else {
-        // Binary Packet: 8-byte offset header + payload
         const view = new DataView(data, 0, 8);
-        const offset = Number(view.getBigUint64(0, true)); // Little-endian 64-bit integer
+        const offset = Number(view.getBigUint64(0, true));
         const payload = data.slice(8);
         const chunkLen = payload.byteLength;
         receivedBytesTotal += chunkLen;
 
         if (writableStream) {
-          // Write directly to offset position without waiting for preceding chunks
           await writableStream.seek(offset);
           await writableStream.write(payload);
         } else {
@@ -897,7 +932,6 @@
       }
     }
 
-    // Unordered Round-Robin Transmitter with 8-byte Offset Headers
     async function transmitPayload() {
       const openChannels = channels.filter(c => c.readyState === 'open');
       if (!stagedFiles.length || openChannels.length === 0) {
@@ -915,7 +949,6 @@
         document.getElementById('currentFileName').innerText = `Sending: ${file.name}`;
         logTrace(`Dispatching: ${file.name} unordered across ${openChannels.length} channels (${formatBytes(file.size)})`);
 
-        // Send metadata
         openChannels[0].send(JSON.stringify({
           type: 'START_FILE',
           name: file.name,
@@ -930,7 +963,6 @@
         while (offset < file.size) {
           const activeCh = openChannels[channelIdx % openChannels.length];
 
-          // Channel backpressure check
           if (activeCh.bufferedAmount > BUFFER_HIGH_WATER) {
             await new Promise((resolve) => {
               let timer = null;
@@ -950,10 +982,9 @@
           const slice = file.slice(offset, offset + CHUNK_SIZE);
           const sliceBuffer = await slice.arrayBuffer();
 
-          // Construct 8-byte offset packet: [Uint64 offset (8B)] + [Payload (64KB)]
           const packet = new Uint8Array(8 + sliceBuffer.byteLength);
           const view = new DataView(packet.buffer);
-          view.setBigUint64(0, BigInt(offset), true); // Little-endian
+          view.setBigUint64(0, BigInt(offset), true);
           packet.set(new Uint8Array(sliceBuffer), 8);
 
           try {

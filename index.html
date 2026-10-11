@@ -335,9 +335,9 @@
   </div>
 
   <script>
-  const CHUNK_SIZE = 256 * 1024;
-  const BUFFER_HIGH_WATER = 8 * 1024 * 1024;
-  const BUFFER_LOW_WATER = 2 * 1024 * 1024;
+  const CHUNK_SIZE = 256 * 1024;              // 256 KB
+  const BUFFER_HIGH_WATER = 16 * 1024 * 1024; // 16 MB ceiling (was 8 MB)
+  const BUFFER_LOW_WATER = 4 * 1024 * 1024;   // 4 MB floor (was 2 MB)
 
   let pc = null;
   let dataChannel = null;
@@ -516,7 +516,7 @@
       `a=setup:${setup}`,
       'a=mid:0',
       `a=sctp-port:${obj.s || '5000'}`,
-      'a=max-message-size:262144'
+      'a=max-message-size:1048576'
     ];
 
     if (obj.c && Array.isArray(obj.c)) {

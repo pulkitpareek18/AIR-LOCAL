@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AirLocal Ultra - Multi-Channel High-Speed Drop</title>
+  <title>AirLocal Ultra - Unordered Multi-Channel P2P Drop</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -60,9 +60,9 @@
         <div>
           <div class="flex items-center space-x-2">
             <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">AirLocal Ultra</span>
-            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">4x Striped Channels</span>
+            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">Unordered SCTP</span>
           </div>
-          <p class="text-[11px] text-slate-400">Multi-Channel SCTP • Local Wi-Fi Wire Speed • Zero Cloud</p>
+          <p class="text-[11px] text-slate-400">Zero Head-of-Line Blocking • 4x Striped Channels • Direct Wi-Fi</p>
         </div>
       </div>
 
@@ -83,7 +83,6 @@
 
     <!-- Pairing Workflow Container -->
     <div id="pairingContainer" class="flex flex-col gap-6">
-      <!-- Mode Selection Tabs -->
       <div class="bg-slate-900/80 border border-slate-800 p-1.5 rounded-2xl flex max-w-md mx-auto w-full">
         <button id="tabHostBtn" onclick="switchPairingMode('host')" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-sky-500 text-slate-950 shadow-md">
           <i data-lucide="monitor" class="w-4 h-4"></i>
@@ -97,7 +96,6 @@
 
       <!-- Host View (Device A) -->
       <div id="hostView" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Step 1: Offer QR Box -->
         <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -105,7 +103,7 @@
               <span id="offerSizeBadge" class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">~240 bytes</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan with Phone (Device B)</h3>
-            <p class="text-xs text-slate-400 mt-1">Contains stripped SDP offer with local IP candidates.</p>
+            <p class="text-xs text-slate-400 mt-1">Contains stripped SDP offer configured for 4 unordered channels.</p>
 
             <div class="my-5 p-4 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col items-center justify-center min-h-[240px]">
               <div id="offerLoader" class="flex flex-col items-center gap-2 py-8">
@@ -123,7 +121,6 @@
           </div>
         </div>
 
-        <!-- Step 2: Answer Receipt Box -->
         <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -131,7 +128,7 @@
               <span class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Handshake</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan Phone's Answer QR</h3>
-            <p class="text-xs text-slate-400 mt-1">Use webcam or paste the phone's answer string below to establish the local connection.</p>
+            <p class="text-xs text-slate-400 mt-1">Use desktop webcam or paste the phone's answer string below.</p>
 
             <div class="my-5 flex flex-col gap-3">
               <button id="hostStartCamBtn" onclick="toggleCameraScanner('host')" class="w-full py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2">
@@ -163,7 +160,6 @@
 
       <!-- Join View (Device B / Phone) -->
       <div id="joinView" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Step 1: Scan Offer on Phone -->
         <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -200,7 +196,6 @@
           </div>
         </div>
 
-        <!-- Step 2: Show Generated Answer QR -->
         <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -242,7 +237,7 @@
               <h3 class="text-sm font-semibold text-slate-200">Local Wi-Fi Pipe Active</h3>
               <span id="diskStreamIndicator" class="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-950 border border-emerald-700/60 text-emerald-300">Stream-to-Disk</span>
             </div>
-            <p class="text-xs text-slate-400 font-mono mt-0.5">4x Striped DataChannels • Round-Robin Multiplexing • Direct LAN</p>
+            <p class="text-xs text-slate-400 font-mono mt-0.5">Unordered Channels • 8-Byte Offset Headers • Direct LAN</p>
           </div>
         </div>
 
@@ -260,7 +255,7 @@
               <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
                 <i data-lucide="upload-cloud" class="w-5 h-5 text-sky-400"></i> Dispatch Files
               </h2>
-              <span class="text-xs text-slate-400 font-mono">Multi-Channel Pipe</span>
+              <span class="text-xs text-slate-400 font-mono">Unordered Striping</span>
             </div>
 
             <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-sky-500 rounded-xl p-8 text-center transition-all cursor-pointer bg-slate-950/40 hover:bg-sky-950/10 group">
@@ -330,11 +325,11 @@
   </div>
 
   <script>
-    // 4 Parallel Striped DataChannels break single-stream SCTP congestion limits
+    // 4 Unordered Striped DataChannels: Eliminates Head-of-Line stalls
     const NUM_CHANNELS = 4;
-    const CHUNK_SIZE = 64 * 1024;              // 64 KB per chunk
-    const BUFFER_HIGH_WATER = 2 * 1024 * 1024; // 2 MB per channel (8 MB total in flight)
-    const BUFFER_LOW_WATER = 512 * 1024;       // 512 KB resume threshold
+    const CHUNK_SIZE = 64 * 1024;              // 64 KB slice
+    const BUFFER_HIGH_WATER = 2 * 1024 * 1024; // 2 MB per channel
+    const BUFFER_LOW_WATER = 512 * 1024;       // 512 KB resume floor
 
     let pc = null;
     let channels = [];
@@ -344,9 +339,10 @@
     let compactAnswerString = '';
     let isProcessingPayload = false;
 
+    // Receiving State
     let writableStream = null;
     let activeFileMeta = null;
-    let fallbackBuffer = [];
+    let fallbackSparseChunks = [];
     let receivedBytesTotal = 0;
     let transferStartTime = 0;
     let stagedFiles = [];
@@ -555,7 +551,7 @@
       return { connection, gatheringComplete };
     }
 
-    // Host: Creates 4 distinct DataChannels
+    // Host: Creates 4 Unordered DataChannels ({ ordered: false })
     async function initHostSession() {
       if (pc) {
         try { pc.close(); } catch(e) {}
@@ -567,7 +563,8 @@
       pc = connection;
 
       for (let i = 0; i < NUM_CHANNELS; i++) {
-        const ch = pc.createDataChannel(`airlocal-${i}`, { ordered: true });
+        // Unordered delivery prevents TCP/SCTP Head-of-Line blocking
+        const ch = pc.createDataChannel(`airlocal-${i}`, { ordered: false });
         ch.binaryType = 'arraybuffer';
         setupDataChannelEvents(ch, i);
         channels.push(ch);
@@ -595,10 +592,10 @@
         correctLevel: QRCode.CorrectLevel.L
       });
 
-      logTrace('Host ready with 4 striped DataChannels.', 'success');
+      logTrace('Host ready with 4 unordered DataChannels.', 'success');
     }
 
-    // Joiner: Receives 4 distinct DataChannels
+    // Joiner: Receives 4 Unordered DataChannels
     async function handleOfferInput(offerStr) {
       if (isProcessingPayload) return;
       isProcessingPayload = true;
@@ -780,7 +777,7 @@
           document.getElementById('pairingContainer').classList.add('hidden');
           document.getElementById('transferView').classList.remove('hidden');
           document.getElementById('transferView').classList.add('flex');
-          logTrace(`Direct WebRTC striping active (Channel #${idx}).`, 'success');
+          logTrace(`Unordered WebRTC striping active (Channel #${idx}).`, 'success');
           showToast('Devices successfully paired!', 'success');
           playChime(659.25, 0.2);
           stopCameraScanner();
@@ -804,6 +801,7 @@
       };
     }
 
+    // Direct-to-Disk Random-Access Receiver with .seek(offset)
     async function handleIncomingDataChunk(data) {
       if (typeof data === 'string') {
         let msg = null;
@@ -813,7 +811,7 @@
           activeFileMeta = msg;
           receivedBytesTotal = 0;
           transferStartTime = performance.now();
-          fallbackBuffer = [];
+          fallbackSparseChunks = [];
           acquireWakeLock();
 
           document.getElementById('currentFileName').innerText = `Writing: ${msg.name}`;
@@ -823,7 +821,9 @@
             try {
               const fileHandle = await window.showSaveFilePicker({ suggestedName: msg.name });
               writableStream = await fileHandle.createWritable();
-              logTrace('Direct-to-disk stream established.', 'success');
+              // Pre-allocate file size so unordered seeks don't fragment
+              await writableStream.truncate(msg.size);
+              logTrace('Direct-to-disk random access stream ready.', 'success');
             } catch (err) {
               writableStream = null;
               showToast('Disk IO cancelled, using RAM buffer', 'info');
@@ -835,7 +835,10 @@
             writableStream = null;
             logTrace(`Flushed to disk: ${activeFileMeta.name}`, 'success');
           } else {
-            const blob = new Blob(fallbackBuffer, { type: activeFileMeta.mimeType || 'application/octet-stream' });
+            // Re-order chunks by byte offset for RAM/Blob fallback
+            fallbackSparseChunks.sort((a, b) => a.offset - b.offset);
+            const orderedPayloads = fallbackSparseChunks.map(c => c.payload);
+            const blob = new Blob(orderedPayloads, { type: activeFileMeta.mimeType || 'application/octet-stream' });
             const dl = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = dl;
@@ -856,16 +859,22 @@
           document.getElementById('currentFileName').innerText = 'Standing by...';
           document.getElementById('speedValue').innerText = '0.0 MB/s';
           activeFileMeta = null;
-          fallbackBuffer = [];
+          fallbackSparseChunks = [];
         }
       } else {
-        const chunkLen = data.byteLength;
+        // Binary Packet: 8-byte offset header + payload
+        const view = new DataView(data, 0, 8);
+        const offset = Number(view.getBigUint64(0, true)); // Little-endian 64-bit integer
+        const payload = data.slice(8);
+        const chunkLen = payload.byteLength;
         receivedBytesTotal += chunkLen;
 
         if (writableStream) {
-          await writableStream.write(data);
+          // Write directly to offset position without waiting for preceding chunks
+          await writableStream.seek(offset);
+          await writableStream.write(payload);
         } else {
-          fallbackBuffer.push(data);
+          fallbackSparseChunks.push({ offset, payload });
         }
 
         if (activeFileMeta) {
@@ -888,7 +897,7 @@
       }
     }
 
-    // Round-Robin Multi-Channel Transmitter (Saturates Wi-Fi 6 Link)
+    // Unordered Round-Robin Transmitter with 8-byte Offset Headers
     async function transmitPayload() {
       const openChannels = channels.filter(c => c.readyState === 'open');
       if (!stagedFiles.length || openChannels.length === 0) {
@@ -904,9 +913,9 @@
       for (let i = 0; i < stagedFiles.length; i++) {
         const file = stagedFiles[i];
         document.getElementById('currentFileName').innerText = `Sending: ${file.name}`;
-        logTrace(`Dispatching: ${file.name} across ${openChannels.length} channels (${formatBytes(file.size)})`);
+        logTrace(`Dispatching: ${file.name} unordered across ${openChannels.length} channels (${formatBytes(file.size)})`);
 
-        // Broadcast header on primary channel
+        // Send metadata
         openChannels[0].send(JSON.stringify({
           type: 'START_FILE',
           name: file.name,
@@ -921,7 +930,7 @@
         while (offset < file.size) {
           const activeCh = openChannels[channelIdx % openChannels.length];
 
-          // Channel-level backpressure check with 50ms heartbeat
+          // Channel backpressure check
           if (activeCh.bufferedAmount > BUFFER_HIGH_WATER) {
             await new Promise((resolve) => {
               let timer = null;
@@ -939,11 +948,17 @@
           }
 
           const slice = file.slice(offset, offset + CHUNK_SIZE);
-          const buffer = await slice.arrayBuffer();
+          const sliceBuffer = await slice.arrayBuffer();
+
+          // Construct 8-byte offset packet: [Uint64 offset (8B)] + [Payload (64KB)]
+          const packet = new Uint8Array(8 + sliceBuffer.byteLength);
+          const view = new DataView(packet.buffer);
+          view.setBigUint64(0, BigInt(offset), true); // Little-endian
+          packet.set(new Uint8Array(sliceBuffer), 8);
 
           try {
-            activeCh.send(buffer);
-            offset += buffer.byteLength;
+            activeCh.send(packet.buffer);
+            offset += sliceBuffer.byteLength;
             channelIdx++;
           } catch (err) {
             await new Promise(r => setTimeout(r, 10));

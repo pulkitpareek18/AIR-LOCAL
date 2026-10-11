@@ -67,7 +67,7 @@
             <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">AirLocal Pure</span>
             <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">Zero Servers</span>
           </div>
-          <p class="text-[11px] text-slate-400">100% Offline • Optical SDP Exchange • Wire-Speed Local LAN</p>
+          <p class="text-[11px] text-slate-400">100% Offline • Optical Handshake • Direct LAN Speed</p>
         </div>
       </div>
 
@@ -133,7 +133,7 @@
           <div>
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs uppercase font-mono text-emerald-400 font-bold tracking-wider">Step 2: Scan Answer</span>
-              <span class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Handshake Complete</span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Handshake</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan Phone's Answer QR</h3>
             <p class="text-xs text-slate-400 mt-1">Use webcam or paste the phone's answer string below to establish connection.</p>
@@ -161,7 +161,7 @@
             </div>
           </div>
           <div class="text-[11px] text-slate-500 font-mono text-center">
-            Zero third-party signaling • True air-gapped handshake
+            Zero third-party signaling • Direct local peer connection
           </div>
         </div>
       </div>
@@ -201,7 +201,7 @@
             </div>
           </div>
           <div class="text-[11px] text-slate-500 font-mono text-center">
-            In-browser jsQR decoding • No native app install required
+            In-browser jsQR decoding • Pure offline client
           </div>
         </div>
 
@@ -251,7 +251,7 @@
           </div>
         </div>
 
-        <button onclick="terminateSession()" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-950/40 hover:text-rose-400 border border-slate-700 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5">
+        <button onclick="terminateSession(true)" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-950/40 hover:text-rose-400 border border-slate-700 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5">
           <i data-lucide="power" class="w-3.5 h-3.5"></i>
           <span>Disconnect</span>
         </button>
@@ -335,20 +335,18 @@
   </div>
 
   <script>
-    // Constants for maximum throughput
-    const CHUNK_SIZE = 256 * 1024; // 256 KB slices
-    const BUFFER_HIGH_WATER = 8 * 1024 * 1024; // 8 MB backpressure ceiling
-    const BUFFER_LOW_WATER = 2 * 1024 * 1024;  // 2 MB resume floor
+    const CHUNK_SIZE = 256 * 1024;
+    const BUFFER_HIGH_WATER = 8 * 1024 * 1024;
+    const BUFFER_LOW_WATER = 2 * 1024 * 1024;
 
-    // State Variables
     let pc = null;
     let dataChannel = null;
+    let isConnected = false; // Tracks if session was ever truly live
     let wakeLock = null;
     let compactOfferString = '';
     let compactAnswerString = '';
     let isProcessingPayload = false;
 
-    // Stream to Disk state
     let writableStream = null;
     let activeFileMeta = null;
     let fallbackBuffer = [];
@@ -357,13 +355,11 @@
     let stagedFiles = [];
     let isSending = false;
 
-    // Camera Scan Variables
     let activeVideoStream = null;
     let scanAnimationId = null;
 
     const supportsFileSystemAPI = 'showSaveFilePicker' in window;
 
-    // Audio effects via Web Audio API (Zero external assets)
     function playChime(freq = 587.33, dur = 0.2) {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -451,7 +447,6 @@
       logs.scrollTop = logs.scrollHeight;
     }
 
-    // SDP Pruning supporting both numeric LAN IPs and mobile mDNS (.local) hostnames
     function pruneAndCompressSDP(sdp, type) {
       const lines = sdp.split('\r\n');
       let ufrag = '', pwd = '', fingerprint = '', sctpPort = '5000';
@@ -499,7 +494,6 @@
       return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
-    // Robust decompressor & SDP reconstructor
     function decompressAndReconstructSDP(safeBase64) {
       let base64 = safeBase64.replace(/-/g, '+').replace(/_/g, '/');
       while (base64.length % 4) base64 += '=';
@@ -543,6 +537,17 @@
 
     function createPurePeerConnection() {
       const connection = new RTCPeerConnection({ iceServers: [] });
+
+      connection.onconnectionstatechange = () => {
+        logTrace(`Peer link state: ${connection.connectionState}`);
+        if (connection.connectionState === 'connected') {
+          isConnected = true;
+          updateStatus('Connected (Local Wi-Fi)', 'connected');
+        } else if (connection.connectionState === 'failed') {
+          if (isConnected) terminateSession(false);
+        }
+      };
+
       const gatheringComplete = new Promise((resolve) => {
         if (connection.iceGatheringState === 'complete') {
           resolve();
@@ -560,12 +565,12 @@
       return { connection, gatheringComplete };
     }
 
-    // Host Mode (Desktop)
     async function initHostSession() {
       if (pc) {
-        pc.close();
+        try { pc.close(); } catch(e) {}
         pc = null;
       }
+      isConnected = false;
       const { connection, gatheringComplete } = createPurePeerConnection();
       pc = connection;
 
@@ -595,10 +600,9 @@
         correctLevel: QRCode.CorrectLevel.L
       });
 
-      logTrace('Host SDP offer ready (signalingState: have-local-offer).', 'success');
+      logTrace('Host SDP offer ready for scan.', 'success');
     }
 
-    // Client Mode (Phone)
     async function handleOfferInput(offerStr) {
       if (isProcessingPayload) return;
       isProcessingPayload = true;
@@ -608,9 +612,10 @@
         const reconstructedOffer = decompressAndReconstructSDP(rawClean);
 
         if (pc) {
-          pc.close();
+          try { pc.close(); } catch(e) {}
           pc = null;
         }
+        isConnected = false;
 
         const { connection, gatheringComplete } = createPurePeerConnection();
         pc = connection;
@@ -649,52 +654,48 @@
         copyBtn.disabled = false;
         copyBtn.classList.remove('opacity-50');
 
-        showToast('Answer QR ready! Point Desktop webcam at phone.', 'success');
+        showToast('Answer QR ready! Point Desktop at phone.', 'success');
         playChime(659.25, 0.15);
       } catch (err) {
         console.error('Failed to process offer:', err);
-        showToast(`Failed: ${err.message || 'Corrupt QR data'}`, 'error');
+        showToast(`Scan Error: ${err.message || 'Corrupt QR data'}`, 'error');
       } finally {
         isProcessingPayload = false;
       }
     }
 
-    // Apply Answer (Desktop)
     async function applyAnswerInput(answerStr) {
       if (isProcessingPayload) return;
       isProcessingPayload = true;
 
       try {
         if (!pc) {
-          showToast('Host connection not initialized. Reloading...', 'error');
+          showToast('Host connection not initialized. Rebuilding...', 'error');
           initHostSession();
           return;
         }
 
-        // WebRTC state check to prevent InvalidStateError
         if (pc.signalingState !== 'have-local-offer') {
           if (pc.signalingState === 'stable') {
-            logTrace('Peer connection is already established and stable.', 'success');
             stopCameraScanner();
             return;
           }
-          throw new Error(`Invalid state: ${pc.signalingState}. Offer was not set.`);
+          throw new Error(`Signaling busy (${pc.signalingState})`);
         }
 
         const reconstructedAnswer = decompressAndReconstructSDP(answerStr.trim());
         await pc.setRemoteDescription(new RTCSessionDescription(reconstructedAnswer));
 
-        showToast('Handshake complete! Establishing P2P...', 'info');
+        showToast('Answer applied! Connecting local pipe...', 'info');
         stopCameraScanner();
       } catch (err) {
         console.error(err);
-        showToast(err.message || 'Invalid answer string', 'error');
+        showToast(err.message || 'Invalid answer data', 'error');
       } finally {
         isProcessingPayload = false;
       }
     }
 
-    // Camera Scanning with willReadFrequently & Single-Lock
     async function toggleCameraScanner(mode) {
       const containerId = mode === 'host' ? 'hostCamContainer' : 'joinCamContainer';
       const videoId = mode === 'host' ? 'hostVideo' : 'joinVideo';
@@ -773,14 +774,15 @@
 
     function setupDataChannelEvents(channel) {
       channel.onopen = () => {
+        isConnected = true;
         updateStatus('Connected (Local Wi-Fi)', 'connected');
         document.getElementById('pairingContainer').classList.add('hidden');
         document.getElementById('transferView').classList.remove('hidden');
         document.getElementById('transferView').classList.add('flex');
 
         channel.bufferedAmountLowThreshold = BUFFER_LOW_WATER;
-        logTrace('WebRTC local P2P pipe opened directly over Wi-Fi.', 'success');
-        showToast('Devices successfully connected!', 'success');
+        logTrace('Direct WebRTC DataChannel active on local LAN.', 'success');
+        showToast('Devices successfully paired!', 'success');
         playChime(659.25, 0.2);
         stopCameraScanner();
       };
@@ -790,17 +792,18 @@
       };
 
       channel.onclose = () => {
-        updateStatus('Disconnected', 'unpaired');
-        logTrace('Data channel closed.', 'error');
-        terminateSession();
+        // Only trigger session termination if it was previously active
+        if (isConnected) {
+          logTrace('Peer disconnected.', 'error');
+          terminateSession(false);
+        }
       };
 
       channel.onerror = (e) => {
-        console.error('DataChannel error:', e);
+        console.warn('Channel non-fatal error:', e);
       };
     }
 
-    // Direct-to-Disk Receiver
     async function handleIncomingDataChunk(data) {
       if (typeof data === 'string') {
         let msg = null;
@@ -823,7 +826,7 @@
               logTrace('Direct-to-disk stream established.', 'success');
             } catch (err) {
               writableStream = null;
-              showToast('Disk IO cancelled, falling back to memory', 'info');
+              showToast('Disk IO cancelled, using RAM buffer', 'info');
             }
           }
         } else if (msg.type === 'END_FILE') {
@@ -885,7 +888,6 @@
       }
     }
 
-    // High-Throughput Sender with Flow Control
     async function transmitPayload() {
       if (!stagedFiles.length || !dataChannel || dataChannel.readyState !== 'open') {
         return showToast('No files staged or channel not ready', 'error');
@@ -1012,7 +1014,6 @@
       applyAnswerInput(val);
     }
 
-    // Drag and Drop Listeners
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
 
@@ -1072,16 +1073,17 @@
       renderStagedItems();
     }
 
-    function terminateSession() {
+    function terminateSession(manual = false) {
       stopCameraScanner();
       if (dataChannel) {
-        dataChannel.close();
+        try { dataChannel.close(); } catch(e) {}
         dataChannel = null;
       }
       if (pc) {
-        pc.close();
+        try { pc.close(); } catch(e) {}
         pc = null;
       }
+      isConnected = false;
       compactOfferString = '';
       compactAnswerString = '';
       stagedFiles = [];
@@ -1090,8 +1092,8 @@
       document.getElementById('pairingContainer').classList.remove('hidden');
       document.getElementById('transferView').classList.add('hidden');
       updateStatus('Unpaired', 'unpaired');
+      if (manual) showToast('Session ended', 'info');
       initHostSession();
-      showToast('Session ended', 'info');
     }
 
     window.addEventListener('DOMContentLoaded', () => {

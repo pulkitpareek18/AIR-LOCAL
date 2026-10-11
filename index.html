@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AirLocal Pure - Zero-Server Local P2P Drop</title>
+  <title>AirLocal Ultra - Multi-Channel High-Speed Drop</title>
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -25,13 +24,9 @@
     };
   </script>
 
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Pako for Deflate/Inflate -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-  <!-- QRCode.js Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- jsQR for client-side camera QR decoding -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
   <style>
@@ -60,14 +55,14 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-sky-500/20">
-          <i data-lucide="shield-check" class="w-5 h-5 text-slate-950"></i>
+          <i data-lucide="zap" class="w-5 h-5 text-slate-950"></i>
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">AirLocal Pure</span>
-            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">Zero Servers</span>
+            <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">AirLocal Ultra</span>
+            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 rounded-full">4x Striped Channels</span>
           </div>
-          <p class="text-[11px] text-slate-400">100% Offline • Optical Handshake • Direct LAN Wire Speed</p>
+          <p class="text-[11px] text-slate-400">Multi-Channel SCTP • Local Wi-Fi Wire Speed • Zero Cloud</p>
         </div>
       </div>
 
@@ -92,11 +87,11 @@
       <div class="bg-slate-900/80 border border-slate-800 p-1.5 rounded-2xl flex max-w-md mx-auto w-full">
         <button id="tabHostBtn" onclick="switchPairingMode('host')" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-sky-500 text-slate-950 shadow-md">
           <i data-lucide="monitor" class="w-4 h-4"></i>
-          <span>Create Host (Desktop)</span>
+          <span>Host (Desktop)</span>
         </button>
         <button id="tabJoinBtn" onclick="switchPairingMode('join')" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200">
           <i data-lucide="smartphone" class="w-4 h-4"></i>
-          <span>Join Host (Phone)</span>
+          <span>Join (Phone)</span>
         </button>
       </div>
 
@@ -110,12 +105,12 @@
               <span id="offerSizeBadge" class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">~240 bytes</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan with Phone (Device B)</h3>
-            <p class="text-xs text-slate-400 mt-1">This QR contains the pruned SDP offer with local candidate endpoints.</p>
+            <p class="text-xs text-slate-400 mt-1">Contains stripped SDP offer with local IP candidates.</p>
 
             <div class="my-5 p-4 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col items-center justify-center min-h-[240px]">
               <div id="offerLoader" class="flex flex-col items-center gap-2 py-8">
                 <div class="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
-                <span class="text-xs font-mono text-slate-400">Gathering host candidates...</span>
+                <span class="text-xs font-mono text-slate-400">Gathering LAN candidates...</span>
               </div>
               <div id="offerQr" class="hidden"></div>
             </div>
@@ -136,7 +131,7 @@
               <span class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Handshake</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan Phone's Answer QR</h3>
-            <p class="text-xs text-slate-400 mt-1">Use webcam or paste the phone's answer string below to establish connection.</p>
+            <p class="text-xs text-slate-400 mt-1">Use webcam or paste the phone's answer string below to establish the local connection.</p>
 
             <div class="my-5 flex flex-col gap-3">
               <button id="hostStartCamBtn" onclick="toggleCameraScanner('host')" class="w-full py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2">
@@ -247,7 +242,7 @@
               <h3 class="text-sm font-semibold text-slate-200">Local Wi-Fi Pipe Active</h3>
               <span id="diskStreamIndicator" class="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-950 border border-emerald-700/60 text-emerald-300">Stream-to-Disk</span>
             </div>
-            <p class="text-xs text-slate-400 font-mono mt-0.5">64 KB Datagram Slices • Non-Blocking Flow Control • Direct LAN</p>
+            <p class="text-xs text-slate-400 font-mono mt-0.5">4x Striped DataChannels • Round-Robin Multiplexing • Direct LAN</p>
           </div>
         </div>
 
@@ -265,7 +260,7 @@
               <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
                 <i data-lucide="upload-cloud" class="w-5 h-5 text-sky-400"></i> Dispatch Files
               </h2>
-              <span class="text-xs text-slate-400 font-mono">Multi-Gigabit Ready</span>
+              <span class="text-xs text-slate-400 font-mono">Multi-Channel Pipe</span>
             </div>
 
             <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-sky-500 rounded-xl p-8 text-center transition-all cursor-pointer bg-slate-950/40 hover:bg-sky-950/10 group">
@@ -284,7 +279,7 @@
 
             <button id="sendBtn" onclick="transmitPayload()" class="w-full py-3 bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-slate-950 font-bold rounded-xl transition-all shadow-lg shadow-sky-500/25 flex items-center justify-center space-x-2">
               <i data-lucide="fast-forward" class="w-4 h-4"></i>
-              <span>Stream Over Local Wi-Fi</span>
+              <span>Stream Over 4x Channels</span>
             </button>
           </div>
         </div>
@@ -335,13 +330,14 @@
   </div>
 
   <script>
-    // Optimal Constants: Sized for MTU efficiency, preventing SCTP buffer-bloat deadlocks
-    const CHUNK_SIZE = 64 * 1024;              // 64 KB per slice (optimal WebRTC UDP datagram payload)
-    const BUFFER_HIGH_WATER = 4 * 1024 * 1024; // 4 MB safety ceiling (safely beneath browser 16MB cap)
-    const BUFFER_LOW_WATER = 1 * 1024 * 1024;  // 1 MB resume threshold
+    // 4 Parallel Striped DataChannels break single-stream SCTP congestion limits
+    const NUM_CHANNELS = 4;
+    const CHUNK_SIZE = 64 * 1024;              // 64 KB per chunk
+    const BUFFER_HIGH_WATER = 2 * 1024 * 1024; // 2 MB per channel (8 MB total in flight)
+    const BUFFER_LOW_WATER = 512 * 1024;       // 512 KB resume threshold
 
     let pc = null;
-    let dataChannel = null;
+    let channels = [];
     let isConnected = false;
     let wakeLock = null;
     let compactOfferString = '';
@@ -448,7 +444,6 @@
       logs.scrollTop = logs.scrollHeight;
     }
 
-    // Preserves host candidates & mDNS names without bloating payload
     function pruneAndCompressSDP(sdp, type) {
       const lines = sdp.split('\r\n');
       let ufrag = '', pwd = '', fingerprint = '', sctpPort = '5000';
@@ -539,15 +534,7 @@
           isConnected = true;
           updateStatus('Connected (Local Wi-Fi)', 'connected');
         } else if (connection.iceConnectionState === 'failed') {
-          logTrace('ICE check failed. Ensure both devices share the exact same Wi-Fi subnet.', 'error');
-        }
-      };
-
-      connection.onconnectionstatechange = () => {
-        logTrace(`Peer State: ${connection.connectionState}`);
-        if (connection.connectionState === 'connected') {
-          isConnected = true;
-          updateStatus('Connected (Local Wi-Fi)', 'connected');
+          logTrace('ICE check failed. Verify both devices share the exact same subnet.', 'error');
         }
       };
 
@@ -568,18 +555,23 @@
       return { connection, gatheringComplete };
     }
 
+    // Host: Creates 4 distinct DataChannels
     async function initHostSession() {
       if (pc) {
         try { pc.close(); } catch(e) {}
         pc = null;
       }
+      channels = [];
       isConnected = false;
       const { connection, gatheringComplete } = createPurePeerConnection();
       pc = connection;
 
-      dataChannel = pc.createDataChannel('airlocal-pure', { ordered: true });
-      dataChannel.binaryType = 'arraybuffer';
-      setupDataChannelEvents(dataChannel);
+      for (let i = 0; i < NUM_CHANNELS; i++) {
+        const ch = pc.createDataChannel(`airlocal-${i}`, { ordered: true });
+        ch.binaryType = 'arraybuffer';
+        setupDataChannelEvents(ch, i);
+        channels.push(ch);
+      }
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -603,9 +595,10 @@
         correctLevel: QRCode.CorrectLevel.L
       });
 
-      logTrace('Host SDP offer ready for scan.', 'success');
+      logTrace('Host ready with 4 striped DataChannels.', 'success');
     }
 
+    // Joiner: Receives 4 distinct DataChannels
     async function handleOfferInput(offerStr) {
       if (isProcessingPayload) return;
       isProcessingPayload = true;
@@ -618,15 +611,18 @@
           try { pc.close(); } catch(e) {}
           pc = null;
         }
+        channels = [];
         isConnected = false;
 
         const { connection, gatheringComplete } = createPurePeerConnection();
         pc = connection;
 
         pc.ondatachannel = (e) => {
-          dataChannel = e.channel;
-          dataChannel.binaryType = 'arraybuffer';
-          setupDataChannelEvents(dataChannel);
+          const ch = e.channel;
+          ch.binaryType = 'arraybuffer';
+          const idx = channels.length;
+          channels.push(ch);
+          setupDataChannelEvents(ch, idx);
         };
 
         await pc.setRemoteDescription(new RTCSessionDescription(reconstructedOffer));
@@ -776,19 +772,20 @@
       }
     }
 
-    function setupDataChannelEvents(channel) {
+    function setupDataChannelEvents(channel, idx) {
       channel.onopen = () => {
-        isConnected = true;
-        updateStatus('Connected (Local Wi-Fi)', 'connected');
-        document.getElementById('pairingContainer').classList.add('hidden');
-        document.getElementById('transferView').classList.remove('hidden');
-        document.getElementById('transferView').classList.add('flex');
-
+        if (!isConnected) {
+          isConnected = true;
+          updateStatus('Connected (Local Wi-Fi)', 'connected');
+          document.getElementById('pairingContainer').classList.add('hidden');
+          document.getElementById('transferView').classList.remove('hidden');
+          document.getElementById('transferView').classList.add('flex');
+          logTrace(`Direct WebRTC striping active (Channel #${idx}).`, 'success');
+          showToast('Devices successfully paired!', 'success');
+          playChime(659.25, 0.2);
+          stopCameraScanner();
+        }
         channel.bufferedAmountLowThreshold = BUFFER_LOW_WATER;
-        logTrace('Direct WebRTC DataChannel active on local LAN.', 'success');
-        showToast('Devices successfully paired!', 'success');
-        playChime(659.25, 0.2);
-        stopCameraScanner();
       };
 
       channel.onmessage = async (e) => {
@@ -803,11 +800,10 @@
       };
 
       channel.onerror = (e) => {
-        console.warn('Channel non-fatal notice:', e);
+        console.warn('Channel notice:', e);
       };
     }
 
-    // Direct-to-Disk & RAM Receiver
     async function handleIncomingDataChunk(data) {
       if (typeof data === 'string') {
         let msg = null;
@@ -892,10 +888,11 @@
       }
     }
 
-    // High-Throughput Deadlock-Free Sender
+    // Round-Robin Multi-Channel Transmitter (Saturates Wi-Fi 6 Link)
     async function transmitPayload() {
-      if (!stagedFiles.length || !dataChannel || dataChannel.readyState !== 'open') {
-        return showToast('No files staged or channel not ready', 'error');
+      const openChannels = channels.filter(c => c.readyState === 'open');
+      if (!stagedFiles.length || openChannels.length === 0) {
+        return showToast('No files staged or channels not ready', 'error');
       }
 
       isSending = true;
@@ -907,9 +904,10 @@
       for (let i = 0; i < stagedFiles.length; i++) {
         const file = stagedFiles[i];
         document.getElementById('currentFileName').innerText = `Sending: ${file.name}`;
-        logTrace(`Dispatching: ${file.name} (${formatBytes(file.size)})`);
+        logTrace(`Dispatching: ${file.name} across ${openChannels.length} channels (${formatBytes(file.size)})`);
 
-        dataChannel.send(JSON.stringify({
+        // Broadcast header on primary channel
+        openChannels[0].send(JSON.stringify({
           type: 'START_FILE',
           name: file.name,
           size: file.size,
@@ -917,23 +915,26 @@
         }));
 
         let offset = 0;
+        let channelIdx = 0;
         transferStartTime = performance.now();
 
         while (offset < file.size) {
-          // Robust Backpressure with 50ms Fallback Heartbeat (Deadlock-Proof)
-          if (dataChannel.bufferedAmount > BUFFER_HIGH_WATER) {
+          const activeCh = openChannels[channelIdx % openChannels.length];
+
+          // Channel-level backpressure check with 50ms heartbeat
+          if (activeCh.bufferedAmount > BUFFER_HIGH_WATER) {
             await new Promise((resolve) => {
               let timer = null;
               const listener = () => {
                 clearTimeout(timer);
-                dataChannel.removeEventListener('bufferedamountlow', listener);
+                activeCh.removeEventListener('bufferedamountlow', listener);
                 resolve();
               };
               timer = setTimeout(() => {
-                dataChannel.removeEventListener('bufferedamountlow', listener);
+                activeCh.removeEventListener('bufferedamountlow', listener);
                 resolve();
-              }, 50); // Heartbeat guarantees resumption even if the OS drops the event
-              dataChannel.addEventListener('bufferedamountlow', listener);
+              }, 40);
+              activeCh.addEventListener('bufferedamountlow', listener);
             });
           }
 
@@ -941,10 +942,10 @@
           const buffer = await slice.arrayBuffer();
 
           try {
-            dataChannel.send(buffer);
+            activeCh.send(buffer);
             offset += buffer.byteLength;
+            channelIdx++;
           } catch (err) {
-            // If internal driver queue momentarily stalls, yield 10ms and retry
             await new Promise(r => setTimeout(r, 10));
             continue;
           }
@@ -966,7 +967,7 @@
           }
         }
 
-        dataChannel.send(JSON.stringify({ type: 'END_FILE' }));
+        openChannels[0].send(JSON.stringify({ type: 'END_FILE' }));
         logTrace(`Dispatched: ${file.name}`, 'success');
       }
 
@@ -1094,10 +1095,10 @@
 
     function terminateSession(manual = false) {
       stopCameraScanner();
-      if (dataChannel) {
-        try { dataChannel.close(); } catch(e) {}
-        dataChannel = null;
-      }
+      channels.forEach(ch => {
+        try { ch.close(); } catch(e) {}
+      });
+      channels = [];
       if (pc) {
         try { pc.close(); } catch(e) {}
         pc = null;

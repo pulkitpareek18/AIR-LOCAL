@@ -1,11 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>AirLocal Pure - Zero-Server Local P2P Drop</title>
-  
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -14,15 +13,8 @@
       theme: {
         extend: {
           colors: {
-            brand: {
-              400: '#38bdf8',
-              500: '#0ea5e9',
-              600: '#0284c7',
-            },
-            accent: {
-              400: '#34d399',
-              500: '#10b981',
-            }
+            brand: { 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
+            accent: { 400: '#34d399', 500: '#10b981' }
           },
           fontFamily: {
             sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
@@ -35,28 +27,18 @@
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Pako for fast, high-compression Deflate/Inflate -->
+  <!-- Pako for Deflate/Inflate -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
   <!-- QRCode.js Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- jsQR for in-browser client-side camera QR decoding -->
+  <!-- jsQR for client-side camera QR decoding -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
   <style>
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: #090d16;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #1e293b;
-      border-radius: 9999px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #0ea5e9;
-    }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #090d16; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #0ea5e9; }
     #offerQr, #answerQr {
       display: inline-flex;
       padding: 12px;
@@ -106,7 +88,6 @@
 
     <!-- Pairing Workflow Container -->
     <div id="pairingContainer" class="flex flex-col gap-6">
-      
       <!-- Mode Selection Tabs -->
       <div class="bg-slate-900/80 border border-slate-800 p-1.5 rounded-2xl flex max-w-md mx-auto w-full">
         <button id="tabHostBtn" onclick="switchPairingMode('host')" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-sky-500 text-slate-950 shadow-md">
@@ -121,7 +102,6 @@
 
       <!-- Host View (Device A) -->
       <div id="hostView" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
         <!-- Step 1: Offer QR Box -->
         <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
@@ -130,7 +110,7 @@
               <span id="offerSizeBadge" class="px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-[10px] font-mono text-sky-300">~240 bytes</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan with Phone (Device B)</h3>
-            <p class="text-xs text-slate-400 mt-1">This QR contains the pruned, deflated SDP offer with local IP candidates.</p>
+            <p class="text-xs text-slate-400 mt-1">This QR contains the pruned SDP offer with local candidate endpoints.</p>
 
             <div class="my-5 p-4 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col items-center justify-center min-h-[240px]">
               <div id="offerLoader" class="flex flex-col items-center gap-2 py-8">
@@ -140,7 +120,6 @@
               <div id="offerQr" class="hidden"></div>
             </div>
           </div>
-
           <div class="space-y-2">
             <button onclick="copyOfferPayload()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-[0.99] border border-slate-700 rounded-xl text-xs font-mono text-slate-300 transition-all flex items-center justify-center gap-2">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
@@ -157,7 +136,7 @@
               <span class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Handshake Complete</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Scan Phone's Answer QR</h3>
-            <p class="text-xs text-slate-400 mt-1">Use webcam or paste the phone's answer string below to establish the local connection.</p>
+            <p class="text-xs text-slate-400 mt-1">Use webcam or paste the phone's answer string below to establish connection.</p>
 
             <div class="my-5 flex flex-col gap-3">
               <button id="hostStartCamBtn" onclick="toggleCameraScanner('host')" class="w-full py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2">
@@ -181,17 +160,14 @@
               </button>
             </div>
           </div>
-
           <div class="text-[11px] text-slate-500 font-mono text-center">
             Zero third-party signaling • True air-gapped handshake
           </div>
         </div>
-
       </div>
 
       <!-- Join View (Device B / Phone) -->
       <div id="joinView" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
-        
         <!-- Step 1: Scan Offer on Phone -->
         <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
@@ -224,7 +200,6 @@
               </button>
             </div>
           </div>
-
           <div class="text-[11px] text-slate-500 font-mono text-center">
             In-browser jsQR decoding • No native app install required
           </div>
@@ -238,7 +213,7 @@
               <span id="answerSizeBadge" class="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-[10px] font-mono text-emerald-300">Waiting for scan</span>
             </div>
             <h3 class="text-base font-bold text-slate-100">Show to Host Desktop</h3>
-            <p class="text-xs text-slate-400 mt-1">Once you scan the offer above, your phone will render this sparse answer QR code.</p>
+            <p class="text-xs text-slate-400 mt-1">Once you scan the offer above, your phone will render this answer QR code.</p>
 
             <div class="my-5 p-4 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col items-center justify-center min-h-[240px]">
               <div id="answerPlaceholder" class="text-center py-10 px-4">
@@ -250,7 +225,6 @@
               <div id="answerQr" class="hidden"></div>
             </div>
           </div>
-
           <div class="space-y-2">
             <button id="copyAnswerBtn" disabled onclick="copyAnswerPayload()" class="w-full py-2 bg-slate-800 opacity-50 border border-slate-700 rounded-xl text-xs font-mono text-slate-300 transition-all flex items-center justify-center gap-2">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
@@ -258,14 +232,11 @@
             </button>
           </div>
         </div>
-
       </div>
-
     </div>
 
+    <!-- Active Connected Transfer View -->
     <div id="transferView" class="hidden flex-col gap-6">
-      
-      <!-- Connection Header Banner -->
       <div class="bg-gradient-to-r from-sky-950/40 via-slate-900/60 to-emerald-950/40 border border-sky-800/40 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
         <div class="flex items-center space-x-3.5">
           <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -286,9 +257,7 @@
         </button>
       </div>
 
-      <!-- File Dispatcher & Telemetry Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
         <!-- File Dispatcher -->
         <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
           <div>
@@ -299,7 +268,6 @@
               <span class="text-xs text-slate-400 font-mono">Multi-Gigabit Ready</span>
             </div>
 
-            <!-- Drag & Drop Zone -->
             <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-sky-500 rounded-xl p-8 text-center transition-all cursor-pointer bg-slate-950/40 hover:bg-sky-950/10 group">
               <input type="file" id="fileInput" class="hidden" multiple>
               <div class="w-14 h-14 mx-auto rounded-full bg-slate-800/80 group-hover:bg-sky-900/40 group-hover:scale-105 flex items-center justify-center text-slate-400 group-hover:text-sky-400 transition-all mb-3">
@@ -310,11 +278,10 @@
             </div>
           </div>
 
-          <!-- Staged Payload List -->
           <div id="stagedContainer" class="mt-4 hidden">
             <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Staged Items</h4>
             <div id="stagedFilesList" class="max-h-36 overflow-y-auto custom-scrollbar space-y-1.5 text-xs text-slate-300 mb-4"></div>
-            
+
             <button id="sendBtn" onclick="transmitPayload()" class="w-full py-3 bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-slate-950 font-bold rounded-xl transition-all shadow-lg shadow-sky-500/25 flex items-center justify-center space-x-2">
               <i data-lucide="fast-forward" class="w-4 h-4"></i>
               <span>Stream Over Local Wi-Fi</span>
@@ -322,7 +289,7 @@
           </div>
         </div>
 
-        <!-- Live Telemetry Monitor -->
+        <!-- Speed & Telemetry Monitor -->
         <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-4">
@@ -334,7 +301,6 @@
               </div>
             </div>
 
-            <!-- Transfer Status Card -->
             <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 mb-4">
               <div class="flex items-center justify-between text-xs mb-2">
                 <span id="currentFileName" class="text-slate-300 truncate max-w-[240px] font-medium">Standing by...</span>
@@ -350,20 +316,17 @@
             </div>
           </div>
 
-          <!-- Wire Activity Diagnostics -->
           <div>
             <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Diagnostics</h4>
             <div id="eventLogs" class="min-h-[120px] max-h-[140px] overflow-y-auto custom-scrollbar bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 space-y-1.5 text-xs font-mono text-slate-400">
               <div class="text-slate-500 flex items-center gap-2">
-                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> Direct WebRTC DataChannel active.
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> Standby for optical pairing.
               </div>
             </div>
           </div>
         </div>
-
       </div>
     </div>
-
   </main>
 
   <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 border border-slate-700 text-slate-200 px-4 py-3 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2.5">
@@ -372,270 +335,233 @@
   </div>
 
   <script>
-  // Constants for maximum throughput
-  const CHUNK_SIZE = 256 * 1024; // 256 KB
-  const BUFFER_HIGH_WATER = 8 * 1024 * 1024; // 8 MB
-  const BUFFER_LOW_WATER = 2 * 1024 * 1024;  // 2 MB
+    // Constants for maximum throughput
+    const CHUNK_SIZE = 256 * 1024; // 256 KB slices
+    const BUFFER_HIGH_WATER = 8 * 1024 * 1024; // 8 MB backpressure ceiling
+    const BUFFER_LOW_WATER = 2 * 1024 * 1024;  // 2 MB resume floor
 
-  // State Variables
-  let pc = null;
-  let dataChannel = null;
-  let wakeLock = null;
-  let compactOfferString = '';
-  let compactAnswerString = '';
-  let isProcessingPayload = false; // Prevents race condition from camera loops
+    // State Variables
+    let pc = null;
+    let dataChannel = null;
+    let wakeLock = null;
+    let compactOfferString = '';
+    let compactAnswerString = '';
+    let isProcessingPayload = false;
 
-  // Stream to Disk state
-  let writableStream = null;
-  let activeFileMeta = null;
-  let fallbackBuffer = [];
-  let receivedBytesTotal = 0;
-  let transferStartTime = 0;
-  let stagedFiles = [];
-  let isSending = false;
+    // Stream to Disk state
+    let writableStream = null;
+    let activeFileMeta = null;
+    let fallbackBuffer = [];
+    let receivedBytesTotal = 0;
+    let transferStartTime = 0;
+    let stagedFiles = [];
+    let isSending = false;
 
-  // Camera Scan Variables
-  let activeVideoStream = null;
-  let scanAnimationId = null;
+    // Camera Scan Variables
+    let activeVideoStream = null;
+    let scanAnimationId = null;
 
-  const supportsFileSystemAPI = 'showSaveFilePicker' in window;
+    const supportsFileSystemAPI = 'showSaveFilePicker' in window;
 
-  // Audio feedback (Web Audio API)
-  function playChime(freq = 587.33, dur = 0.2) {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + dur);
-    } catch (e) {}
-  }
+    // Audio effects via Web Audio API (Zero external assets)
+    function playChime(freq = 587.33, dur = 0.2) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + dur);
+      } catch (e) {}
+    }
 
-  async function acquireWakeLock() {
-    try {
-      if ('wakeLock' in navigator) {
-        wakeLock = await navigator.wakeLock.request('screen');
+    async function acquireWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {}
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
       }
-    } catch (err) {}
-  }
-
-  function releaseWakeLock() {
-    if (wakeLock) {
-      wakeLock.release().catch(() => {});
-      wakeLock = null;
     }
-  }
 
-  function showToast(msg, type = 'info') {
-    const toast = document.getElementById('toast');
-    const toastMsg = document.getElementById('toastMsg');
-    const toastIcon = document.getElementById('toastIcon');
+    function showToast(msg, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
 
-    toastMsg.innerText = msg;
-    if (type === 'success') {
-      toastIcon.setAttribute('data-lucide', 'check-circle');
-      toastIcon.className = 'w-4 h-4 text-emerald-400';
-    } else if (type === 'error') {
-      toastIcon.setAttribute('data-lucide', 'alert-circle');
-      toastIcon.className = 'w-4 h-4 text-rose-400';
-    } else {
-      toastIcon.setAttribute('data-lucide', 'info');
-      toastIcon.className = 'w-4 h-4 text-sky-400';
+      toastMsg.innerText = msg;
+      if (type === 'success') {
+        toastIcon.setAttribute('data-lucide', 'check-circle');
+        toastIcon.className = 'w-4 h-4 text-emerald-400';
+      } else if (type === 'error') {
+        toastIcon.setAttribute('data-lucide', 'alert-circle');
+        toastIcon.className = 'w-4 h-4 text-rose-400';
+      } else {
+        toastIcon.setAttribute('data-lucide', 'info');
+        toastIcon.className = 'w-4 h-4 text-sky-400';
+      }
+      lucide.createIcons();
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3500);
     }
-    lucide.createIcons();
 
-    toast.classList.remove('translate-y-20', 'opacity-0');
-    setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3500);
-  }
-
-  function formatBytes(bytes) {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
-  function updateStatus(label, state = 'unpaired') {
-    const dot = document.getElementById('statusDot');
-    const text = document.getElementById('statusText');
-    text.innerText = label;
-
-    if (state === 'connected') {
-      dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400';
-    } else if (state === 'active') {
-      dot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse';
-    } else {
-      dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
+    function formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
-  }
 
-  function logTrace(text, type = 'info') {
-    const logs = document.getElementById('eventLogs');
-    const row = document.createElement('div');
-    row.className = 'flex items-center space-x-2 text-[11px]';
-    const time = new Date().toLocaleTimeString([], { hour12: false });
-    let color = 'text-slate-400';
-    if (type === 'success') color = 'text-emerald-400';
-    if (type === 'error') color = 'text-rose-400';
-    row.innerHTML = `<span class="text-slate-600">[${time}]</span> <span class="${color}">${text}</span>`;
-    logs.appendChild(row);
-    logs.scrollTop = logs.scrollHeight;
-  }
+    function updateStatus(label, state = 'unpaired') {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      text.innerText = label;
 
-  // URL-safe robust binary compression
-  function pruneAndCompressSDP(sdp, type) {
-    const lines = sdp.split('\r\n');
-    let ufrag = '', pwd = '', fingerprint = '', sctpPort = '5000';
-    let hostCandidate = null;
+      if (state === 'connected') {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400';
+      } else if (state === 'active') {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse';
+      } else {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
+      }
+    }
 
-    for (const line of lines) {
-      if (line.startsWith('a=ice-ufrag:')) ufrag = line.substring(12);
-      else if (line.startsWith('a=ice-pwd:')) pwd = line.substring(10);
-      else if (line.startsWith('a=fingerprint:')) fingerprint = line.substring(14);
-      else if (line.startsWith('a=sctp-port:')) sctpPort = line.substring(12);
-      else if (line.startsWith('a=candidate:')) {
-        const parts = line.split(' ');
-        if (parts.length >= 8 && parts[7] === 'host') {
-          const ip = parts[4];
-          const port = parts[5];
-          if (!ip.includes(':') && (ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.') || !hostCandidate)) {
-            hostCandidate = { ip, port, foundation: parts[0].substring(12), priority: parts[3] };
+    function logTrace(text, type = 'info') {
+      const logs = document.getElementById('eventLogs');
+      const row = document.createElement('div');
+      row.className = 'flex items-center space-x-2 text-[11px]';
+      const time = new Date().toLocaleTimeString([], { hour12: false });
+      let color = 'text-slate-400';
+      if (type === 'success') color = 'text-emerald-400';
+      if (type === 'error') color = 'text-rose-400';
+      row.innerHTML = `<span class="text-slate-600">[${time}]</span> <span class="${color}">${text}</span>`;
+      logs.appendChild(row);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    // SDP Pruning supporting both numeric LAN IPs and mobile mDNS (.local) hostnames
+    function pruneAndCompressSDP(sdp, type) {
+      const lines = sdp.split('\r\n');
+      let ufrag = '', pwd = '', fingerprint = '', sctpPort = '5000';
+      let hostCandidate = null;
+
+      for (const line of lines) {
+        if (line.startsWith('a=ice-ufrag:')) ufrag = line.substring(12);
+        else if (line.startsWith('a=ice-pwd:')) pwd = line.substring(10);
+        else if (line.startsWith('a=fingerprint:')) fingerprint = line.substring(14);
+        else if (line.startsWith('a=sctp-port:')) sctpPort = line.substring(12);
+        else if (line.startsWith('a=candidate:')) {
+          const parts = line.split(' ');
+          if (parts.length >= 8 && parts[7] === 'host') {
+            const addr = parts[4];
+            const port = parts[5];
+            if (!hostCandidate || addr.startsWith('192.168.') || addr.startsWith('10.') || addr.startsWith('172.')) {
+              hostCandidate = {
+                addr,
+                port,
+                foundation: parts[0].replace('a=candidate:', ''),
+                priority: parts[3]
+              };
+            }
           }
         }
       }
-    }
 
-    const minimalObj = {
-      t: type === 'offer' ? 'o' : 'a',
-      u: ufrag,
-      p: pwd,
-      f: fingerprint,
-      s: sctpPort,
-      c: hostCandidate ? [hostCandidate.ip, hostCandidate.port, hostCandidate.foundation || '1', hostCandidate.priority || '2122260223'] : null
-    };
+      const minimalObj = {
+        t: type === 'offer' ? 'o' : 'a',
+        u: ufrag,
+        p: pwd,
+        f: fingerprint,
+        s: sctpPort,
+        c: hostCandidate ? [hostCandidate.addr, hostCandidate.port, hostCandidate.foundation || '1', hostCandidate.priority || '2122260223'] : null
+      };
 
-    const jsonStr = JSON.stringify(minimalObj);
-    const deflated = pako.deflate(jsonStr, { level: 9 });
+      const jsonStr = JSON.stringify(minimalObj);
+      const deflated = pako.deflate(jsonStr, { level: 9 });
 
-    let binary = '';
-    const len = deflated.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(deflated[i]);
-    }
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-
-  function decompressAndReconstructSDP(safeBase64) {
-    let base64 = safeBase64.replace(/-/g, '+').replace(/_/g, '/');
-    while (base64.length % 4) base64 += '=';
-
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    const jsonStr = pako.inflate(bytes, { to: 'string' });
-    const obj = JSON.parse(jsonStr);
-
-    const type = obj.t === 'o' ? 'offer' : 'answer';
-    const setup = type === 'offer' ? 'actpass' : 'active';
-    const c = obj.c;
-
-    let sdp = [
-      'v=0',
-      'o=- 1000000000000000000 2 IN IP4 127.0.0.1',
-      's=-',
-      't=0 0',
-      'a=msid-semantic: WMS',
-      `m=application 9 UDP/DTLS/SCTP webrtc-datachannel`,
-      `c=IN IP4 ${c ? c[0] : '0.0.0.0'}`,
-      `a=ice-ufrag:${obj.u}`,
-      `a=ice-pwd:${obj.p}`,
-      `a=fingerprint:${obj.f}`,
-      `a=setup:${setup}`,
-      'a=mid:0',
-      `a=sctp-port:${obj.s || '5000'}`,
-      'a=max-message-size:262144'
-    ];
-
-    if (c) {
-      sdp.push(`a=candidate:${c[2]} 1 udp ${c[3]} ${c[0]} ${c[1]} typ host`);
-    }
-    sdp.push('');
-
-    return { type, sdp: sdp.join('\r\n') };
-  }
-
-  function createPurePeerConnection() {
-    const connection = new RTCPeerConnection({ iceServers: [] });
-    const gatheringComplete = new Promise((resolve) => {
-      if (connection.iceGatheringState === 'complete') {
-        resolve();
-      } else {
-        const checkState = () => {
-          if (connection.iceGatheringState === 'complete') {
-            connection.removeEventListener('icegatheringstatechange', checkState);
-            resolve();
-          }
-        };
-        connection.addEventListener('icegatheringstatechange', checkState);
-        setTimeout(resolve, 1500);
+      let binary = '';
+      const len = deflated.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(deflated[i]);
       }
-    });
-    return { connection, gatheringComplete };
-  }
-
-  // Host Mode (Desktop)
-  async function initHostSession() {
-    if (pc) {
-      pc.close();
-      pc = null;
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
-    const { connection, gatheringComplete } = createPurePeerConnection();
-    pc = connection;
 
-    dataChannel = pc.createDataChannel('airlocal-pure', { ordered: true });
-    dataChannel.binaryType = 'arraybuffer';
-    setupDataChannelEvents(dataChannel);
+    // Robust decompressor & SDP reconstructor
+    function decompressAndReconstructSDP(safeBase64) {
+      let base64 = safeBase64.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) base64 += '=';
 
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const jsonStr = pako.inflate(bytes, { to: 'string' });
+      const obj = JSON.parse(jsonStr);
 
-    await gatheringComplete;
+      const type = obj.t === 'o' ? 'offer' : 'answer';
+      const setup = type === 'offer' ? 'actpass' : 'active';
+      const c = obj.c;
 
-    compactOfferString = pruneAndCompressSDP(pc.localDescription.sdp, 'offer');
-    document.getElementById('offerSizeBadge').innerText = `${compactOfferString.length} bytes`;
+      let sdp = [
+        'v=0',
+        'o=- 1000000000000000000 2 IN IP4 127.0.0.1',
+        's=-',
+        't=0 0',
+        'a=msid-semantic: WMS',
+        'm=application 9 UDP/DTLS/SCTP webrtc-datachannel',
+        `c=IN IP4 ${c ? (c[0].includes('.local') ? '0.0.0.0' : c[0]) : '0.0.0.0'}`,
+        `a=ice-ufrag:${obj.u}`,
+        `a=ice-pwd:${obj.p}`,
+        `a=fingerprint:${obj.f}`,
+        `a=setup:${setup}`,
+        'a=mid:0',
+        `a=sctp-port:${obj.s || '5000'}`,
+        'a=max-message-size:262144'
+      ];
 
-    const qrEl = document.getElementById('offerQr');
-    qrEl.innerHTML = '';
-    qrEl.classList.remove('hidden');
-    document.getElementById('offerLoader').classList.add('hidden');
+      if (c) {
+        sdp.push(`a=candidate:${c[2]} 1 udp ${c[3]} ${c[0]} ${c[1]} typ host`);
+      }
+      sdp.push('');
 
-    new QRCode(qrEl, {
-      text: compactOfferString,
-      width: 220,
-      height: 220,
-      colorDark: '#000000',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.L
-    });
+      return { type, sdp: sdp.join('\r\n') };
+    }
 
-    logTrace('Host SDP offer ready (State: have-local-offer).', 'success');
-  }
+    function createPurePeerConnection() {
+      const connection = new RTCPeerConnection({ iceServers: [] });
+      const gatheringComplete = new Promise((resolve) => {
+        if (connection.iceGatheringState === 'complete') {
+          resolve();
+        } else {
+          const checkState = () => {
+            if (connection.iceGatheringState === 'complete') {
+              connection.removeEventListener('icegatheringstatechange', checkState);
+              resolve();
+            }
+          };
+          connection.addEventListener('icegatheringstatechange', checkState);
+          setTimeout(resolve, 1500);
+        }
+      });
+      return { connection, gatheringComplete };
+    }
 
-  // Client Mode (Phone)
-  async function handleOfferInput(offerStr) {
-    if (isProcessingPayload) return;
-    isProcessingPayload = true;
-
-    try {
-      const reconstructedOffer = decompressAndReconstructSDP(offerStr.trim());
+    // Host Mode (Desktop)
+    async function initHostSession() {
       if (pc) {
         pc.close();
         pc = null;
@@ -643,28 +569,25 @@
       const { connection, gatheringComplete } = createPurePeerConnection();
       pc = connection;
 
-      pc.ondatachannel = (e) => {
-        dataChannel = e.channel;
-        dataChannel.binaryType = 'arraybuffer';
-        setupDataChannelEvents(dataChannel);
-      };
+      dataChannel = pc.createDataChannel('airlocal-pure', { ordered: true });
+      dataChannel.binaryType = 'arraybuffer';
+      setupDataChannelEvents(dataChannel);
 
-      await pc.setRemoteDescription(new RTCSessionDescription(reconstructedOffer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
 
       await gatheringComplete;
 
-      compactAnswerString = pruneAndCompressSDP(pc.localDescription.sdp, 'answer');
-      document.getElementById('answerSizeBadge').innerText = `${compactAnswerString.length} bytes`;
+      compactOfferString = pruneAndCompressSDP(pc.localDescription.sdp, 'offer');
+      document.getElementById('offerSizeBadge').innerText = `${compactOfferString.length} bytes`;
 
-      document.getElementById('answerPlaceholder').classList.add('hidden');
-      const ansQr = document.getElementById('answerQr');
-      ansQr.innerHTML = '';
-      ansQr.classList.remove('hidden');
+      const qrEl = document.getElementById('offerQr');
+      qrEl.innerHTML = '';
+      qrEl.classList.remove('hidden');
+      document.getElementById('offerLoader').classList.add('hidden');
 
-      new QRCode(ansQr, {
-        text: compactAnswerString,
+      new QRCode(qrEl, {
+        text: compactOfferString,
         width: 220,
         height: 220,
         colorDark: '#000000',
@@ -672,467 +595,516 @@
         correctLevel: QRCode.CorrectLevel.L
       });
 
-      const copyBtn = document.getElementById('copyAnswerBtn');
-      copyBtn.disabled = false;
-      copyBtn.classList.remove('opacity-50');
-
-      showToast('Answer generated! Show to desktop.', 'success');
-      playChime(659.25, 0.15);
-    } catch (err) {
-      console.error(err);
-      showToast('Invalid offer QR payload', 'error');
-    } finally {
-      isProcessingPayload = false;
+      logTrace('Host SDP offer ready (signalingState: have-local-offer).', 'success');
     }
-  }
 
-  // Apply Answer (Desktop)
-  async function applyAnswerInput(answerStr) {
-    if (isProcessingPayload) return;
-    isProcessingPayload = true;
+    // Client Mode (Phone)
+    async function handleOfferInput(offerStr) {
+      if (isProcessingPayload) return;
+      isProcessingPayload = true;
 
-    try {
-      if (!pc) {
-        showToast('Host connection not initialized. Reloading...', 'error');
-        initHostSession();
+      try {
+        const rawClean = offerStr.trim();
+        const reconstructedOffer = decompressAndReconstructSDP(rawClean);
+
+        if (pc) {
+          pc.close();
+          pc = null;
+        }
+
+        const { connection, gatheringComplete } = createPurePeerConnection();
+        pc = connection;
+
+        pc.ondatachannel = (e) => {
+          dataChannel = e.channel;
+          dataChannel.binaryType = 'arraybuffer';
+          setupDataChannelEvents(dataChannel);
+        };
+
+        await pc.setRemoteDescription(new RTCSessionDescription(reconstructedOffer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        await gatheringComplete;
+
+        compactAnswerString = pruneAndCompressSDP(pc.localDescription.sdp, 'answer');
+
+        document.getElementById('answerSizeBadge').innerText = `${compactAnswerString.length} bytes`;
+        document.getElementById('answerPlaceholder').classList.add('hidden');
+
+        const ansQr = document.getElementById('answerQr');
+        ansQr.innerHTML = '';
+        ansQr.classList.remove('hidden');
+
+        new QRCode(ansQr, {
+          text: compactAnswerString,
+          width: 220,
+          height: 220,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.L
+        });
+
+        const copyBtn = document.getElementById('copyAnswerBtn');
+        copyBtn.disabled = false;
+        copyBtn.classList.remove('opacity-50');
+
+        showToast('Answer QR ready! Point Desktop webcam at phone.', 'success');
+        playChime(659.25, 0.15);
+      } catch (err) {
+        console.error('Failed to process offer:', err);
+        showToast(`Failed: ${err.message || 'Corrupt QR data'}`, 'error');
+      } finally {
+        isProcessingPayload = false;
+      }
+    }
+
+    // Apply Answer (Desktop)
+    async function applyAnswerInput(answerStr) {
+      if (isProcessingPayload) return;
+      isProcessingPayload = true;
+
+      try {
+        if (!pc) {
+          showToast('Host connection not initialized. Reloading...', 'error');
+          initHostSession();
+          return;
+        }
+
+        // WebRTC state check to prevent InvalidStateError
+        if (pc.signalingState !== 'have-local-offer') {
+          if (pc.signalingState === 'stable') {
+            logTrace('Peer connection is already established and stable.', 'success');
+            stopCameraScanner();
+            return;
+          }
+          throw new Error(`Invalid state: ${pc.signalingState}. Offer was not set.`);
+        }
+
+        const reconstructedAnswer = decompressAndReconstructSDP(answerStr.trim());
+        await pc.setRemoteDescription(new RTCSessionDescription(reconstructedAnswer));
+
+        showToast('Handshake complete! Establishing P2P...', 'info');
+        stopCameraScanner();
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Invalid answer string', 'error');
+      } finally {
+        isProcessingPayload = false;
+      }
+    }
+
+    // Camera Scanning with willReadFrequently & Single-Lock
+    async function toggleCameraScanner(mode) {
+      const containerId = mode === 'host' ? 'hostCamContainer' : 'joinCamContainer';
+      const videoId = mode === 'host' ? 'hostVideo' : 'joinVideo';
+      const canvasId = mode === 'host' ? 'hostScanCanvas' : 'joinScanCanvas';
+      const btnTextId = mode === 'host' ? 'hostCamBtnText' : 'joinCamBtnText';
+
+      const container = document.getElementById(containerId);
+      const video = document.getElementById(videoId);
+      const canvas = document.getElementById(canvasId);
+      const btnText = document.getElementById(btnTextId);
+
+      if (activeVideoStream) {
+        stopCameraScanner();
+        container.classList.add('hidden');
+        btnText.innerText = mode === 'host' ? 'Open Desktop Camera to Scan' : 'Start Camera Scanner';
         return;
       }
 
-      // GUARD: WebRTC state check to prevent InvalidStateError
-      if (pc.signalingState !== 'have-local-offer') {
-        if (pc.signalingState === 'stable') {
-          logTrace('Peer connection is already established and stable.', 'success');
-          stopCameraScanner();
-          return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        activeVideoStream = stream;
+        video.srcObject = stream;
+        video.setAttribute('playsinline', 'true');
+        await video.play();
+
+        container.classList.remove('hidden');
+        btnText.innerText = 'Stop Camera Scanner';
+
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const scan = () => {
+          if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'dontInvert'
+            });
+
+            if (code && code.data && !isProcessingPayload) {
+              playChime(880, 0.15);
+              stopCameraScanner();
+              container.classList.add('hidden');
+              btnText.innerText = mode === 'host' ? 'Open Desktop Camera to Scan' : 'Start Camera Scanner';
+
+              if (mode === 'host') {
+                applyAnswerInput(code.data);
+              } else {
+                handleOfferInput(code.data);
+              }
+              return;
+            }
+          }
+          scanAnimationId = requestAnimationFrame(scan);
+        };
+        scanAnimationId = requestAnimationFrame(scan);
+      } catch (err) {
+        console.error(err);
+        showToast('Camera permission denied or camera not found', 'error');
+      }
+    }
+
+    function stopCameraScanner() {
+      if (scanAnimationId) {
+        cancelAnimationFrame(scanAnimationId);
+        scanAnimationId = null;
+      }
+      if (activeVideoStream) {
+        activeVideoStream.getTracks().forEach((t) => t.stop());
+        activeVideoStream = null;
+      }
+    }
+
+    function setupDataChannelEvents(channel) {
+      channel.onopen = () => {
+        updateStatus('Connected (Local Wi-Fi)', 'connected');
+        document.getElementById('pairingContainer').classList.add('hidden');
+        document.getElementById('transferView').classList.remove('hidden');
+        document.getElementById('transferView').classList.add('flex');
+
+        channel.bufferedAmountLowThreshold = BUFFER_LOW_WATER;
+        logTrace('WebRTC local P2P pipe opened directly over Wi-Fi.', 'success');
+        showToast('Devices successfully connected!', 'success');
+        playChime(659.25, 0.2);
+        stopCameraScanner();
+      };
+
+      channel.onmessage = async (e) => {
+        await handleIncomingDataChunk(e.data);
+      };
+
+      channel.onclose = () => {
+        updateStatus('Disconnected', 'unpaired');
+        logTrace('Data channel closed.', 'error');
+        terminateSession();
+      };
+
+      channel.onerror = (e) => {
+        console.error('DataChannel error:', e);
+      };
+    }
+
+    // Direct-to-Disk Receiver
+    async function handleIncomingDataChunk(data) {
+      if (typeof data === 'string') {
+        let msg = null;
+        try { msg = JSON.parse(data); } catch(e) { return; }
+
+        if (msg.type === 'START_FILE') {
+          activeFileMeta = msg;
+          receivedBytesTotal = 0;
+          transferStartTime = performance.now();
+          fallbackBuffer = [];
+          acquireWakeLock();
+
+          document.getElementById('currentFileName').innerText = `Writing: ${msg.name}`;
+          logTrace(`Incoming: ${msg.name} (${formatBytes(msg.size)})`);
+
+          if (supportsFileSystemAPI) {
+            try {
+              const fileHandle = await window.showSaveFilePicker({ suggestedName: msg.name });
+              writableStream = await fileHandle.createWritable();
+              logTrace('Direct-to-disk stream established.', 'success');
+            } catch (err) {
+              writableStream = null;
+              showToast('Disk IO cancelled, falling back to memory', 'info');
+            }
+          }
+        } else if (msg.type === 'END_FILE') {
+          if (writableStream) {
+            await writableStream.close();
+            writableStream = null;
+            logTrace(`Flushed to disk: ${activeFileMeta.name}`, 'success');
+          } else {
+            const blob = new Blob(fallbackBuffer, { type: activeFileMeta.mimeType || 'application/octet-stream' });
+            const dl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = dl;
+            a.download = activeFileMeta.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(dl), 4000);
+            logTrace(`Saved file: ${activeFileMeta.name}`, 'success');
+          }
+
+          playChime(880, 0.25);
+          showToast(`Completed: ${activeFileMeta.name}`, 'success');
+          releaseWakeLock();
+
+          document.getElementById('progressBar').style.width = '0%';
+          document.getElementById('percentBadge').innerText = '0%';
+          document.getElementById('currentFileName').innerText = 'Standing by...';
+          document.getElementById('speedValue').innerText = '0.0 MB/s';
+          activeFileMeta = null;
+          fallbackBuffer = [];
         }
-        throw new Error(`Invalid state: ${pc.signalingState}. Offer was not set.`);
+      } else {
+        const chunkLen = data.byteLength;
+        receivedBytesTotal += chunkLen;
+
+        if (writableStream) {
+          await writableStream.write(data);
+        } else {
+          fallbackBuffer.push(data);
+        }
+
+        if (activeFileMeta) {
+          const percent = Math.min(100, Math.round((receivedBytesTotal / activeFileMeta.size) * 100));
+          document.getElementById('progressBar').style.width = `${percent}%`;
+          document.getElementById('percentBadge').innerText = `${percent}%`;
+          document.getElementById('bytesTransferred').innerText = `${formatBytes(receivedBytesTotal)} / ${formatBytes(activeFileMeta.size)}`;
+
+          const elapsedSec = (performance.now() - transferStartTime) / 1000;
+          if (elapsedSec > 0.3) {
+            const bytesPerSec = receivedBytesTotal / elapsedSec;
+            const mbPerSec = (bytesPerSec / (1024 * 1024)).toFixed(1);
+            document.getElementById('speedValue').innerText = `${mbPerSec} MB/s`;
+
+            const remBytes = activeFileMeta.size - receivedBytesTotal;
+            const eta = Math.max(0, Math.round(remBytes / bytesPerSec));
+            document.getElementById('etaTimer').innerText = `ETA: ${eta}s`;
+          }
+        }
+      }
+    }
+
+    // High-Throughput Sender with Flow Control
+    async function transmitPayload() {
+      if (!stagedFiles.length || !dataChannel || dataChannel.readyState !== 'open') {
+        return showToast('No files staged or channel not ready', 'error');
       }
 
-      const reconstructedAnswer = decompressAndReconstructSDP(answerStr.trim());
-      await pc.setRemoteDescription(new RTCSessionDescription(reconstructedAnswer));
-      
-      showToast('Handshake complete! Establishing P2P...', 'info');
-      stopCameraScanner();
-    } catch (err) {
-      console.error(err);
-      showToast(err.message || 'Invalid answer string', 'error');
-    } finally {
-      isProcessingPayload = false;
+      isSending = true;
+      acquireWakeLock();
+      const sendBtn = document.getElementById('sendBtn');
+      sendBtn.disabled = true;
+      sendBtn.classList.add('opacity-50');
+
+      for (let i = 0; i < stagedFiles.length; i++) {
+        const file = stagedFiles[i];
+        document.getElementById('currentFileName').innerText = `Sending: ${file.name}`;
+        logTrace(`Dispatching: ${file.name} (${formatBytes(file.size)})`);
+
+        dataChannel.send(JSON.stringify({
+          type: 'START_FILE',
+          name: file.name,
+          size: file.size,
+          mimeType: file.type
+        }));
+
+        let offset = 0;
+        transferStartTime = performance.now();
+
+        while (offset < file.size) {
+          if (dataChannel.bufferedAmount > BUFFER_HIGH_WATER) {
+            await new Promise((resolve) => {
+              const listener = () => {
+                dataChannel.removeEventListener('bufferedamountlow', listener);
+                resolve();
+              };
+              dataChannel.addEventListener('bufferedamountlow', listener);
+            });
+          }
+
+          const slice = file.slice(offset, offset + CHUNK_SIZE);
+          const buffer = await slice.arrayBuffer();
+          dataChannel.send(buffer);
+          offset += buffer.byteLength;
+
+          const percent = Math.min(100, Math.round((offset / file.size) * 100));
+          document.getElementById('progressBar').style.width = `${percent}%`;
+          document.getElementById('percentBadge').innerText = `${percent}%`;
+          document.getElementById('bytesTransferred').innerText = `${formatBytes(offset)} / ${formatBytes(file.size)}`;
+
+          const elapsedSec = (performance.now() - transferStartTime) / 1000;
+          if (elapsedSec > 0.3) {
+            const bytesPerSec = offset / elapsedSec;
+            const mbPerSec = (bytesPerSec / (1024 * 1024)).toFixed(1);
+            document.getElementById('speedValue').innerText = `${mbPerSec} MB/s`;
+
+            const remBytes = file.size - offset;
+            const eta = Math.max(0, Math.round(remBytes / bytesPerSec));
+            document.getElementById('etaTimer').innerText = `ETA: ${eta}s`;
+          }
+        }
+
+        dataChannel.send(JSON.stringify({ type: 'END_FILE' }));
+        logTrace(`Dispatched: ${file.name}`, 'success');
+      }
+
+      showToast('All files sent successfully!', 'success');
+      playChime(783.99, 0.2);
+      releaseWakeLock();
+
+      stagedFiles = [];
+      document.getElementById('stagedContainer').classList.add('hidden');
+      document.getElementById('stagedFilesList').innerHTML = '';
+      sendBtn.disabled = false;
+      sendBtn.classList.remove('opacity-50');
+      document.getElementById('progressBar').style.width = '0%';
+      document.getElementById('percentBadge').innerText = '0%';
+      document.getElementById('currentFileName').innerText = 'Ready';
+      document.getElementById('speedValue').innerText = '0.0 MB/s';
+      isSending = false;
     }
-  }
 
-  // Camera Scanning with willReadFrequently & Single-Lock
-  async function toggleCameraScanner(mode) {
-    const containerId = mode === 'host' ? 'hostCamContainer' : 'joinCamContainer';
-    const videoId = mode === 'host' ? 'hostVideo' : 'joinVideo';
-    const canvasId = mode === 'host' ? 'hostScanCanvas' : 'joinScanCanvas';
-    const btnTextId = mode === 'host' ? 'hostCamBtnText' : 'joinCamBtnText';
-
-    const container = document.getElementById(containerId);
-    const video = document.getElementById(videoId);
-    const canvas = document.getElementById(canvasId);
-    const btnText = document.getElementById(btnTextId);
-
-    if (activeVideoStream) {
+    function switchPairingMode(mode) {
       stopCameraScanner();
-      container.classList.add('hidden');
-      btnText.innerText = mode === 'host' ? 'Open Desktop Camera to Scan' : 'Start Camera Scanner';
-      return;
+      const hostTab = document.getElementById('tabHostBtn');
+      const joinTab = document.getElementById('tabJoinBtn');
+      const hostView = document.getElementById('hostView');
+      const joinView = document.getElementById('joinView');
+
+      if (mode === 'host') {
+        hostTab.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-sky-500 text-slate-950 shadow-md';
+        joinTab.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200';
+        hostView.classList.remove('hidden');
+        joinView.classList.add('hidden');
+        if (!compactOfferString) initHostSession();
+      } else {
+        joinTab.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-sky-500 text-slate-950 shadow-md';
+        hostTab.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200';
+        joinView.classList.remove('hidden');
+        hostView.classList.add('hidden');
+      }
     }
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+    function copyOfferPayload() {
+      if (!compactOfferString) return;
+      navigator.clipboard.writeText(compactOfferString).then(() => {
+        showToast('Offer payload copied to clipboard', 'success');
       });
-      activeVideoStream = stream;
-      video.srcObject = stream;
-      video.setAttribute('playsinline', 'true');
-      await video.play();
+    }
+
+    function copyAnswerPayload() {
+      if (!compactAnswerString) return;
+      navigator.clipboard.writeText(compactAnswerString).then(() => {
+        showToast('Answer payload copied to clipboard', 'success');
+      });
+    }
+
+    function applyManualOffer() {
+      const val = document.getElementById('joinManualOffer').value.trim();
+      if (!val) return showToast('Please enter offer payload', 'error');
+      handleOfferInput(val);
+    }
+
+    function applyManualAnswer() {
+      const val = document.getElementById('hostManualAnswer').value.trim();
+      if (!val) return showToast('Please enter answer payload', 'error');
+      applyAnswerInput(val);
+    }
+
+    // Drag and Drop Listeners
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-sky-400', 'bg-sky-950/20');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-sky-400', 'bg-sky-950/20');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-sky-400', 'bg-sky-950/20');
+      if (e.dataTransfer.files.length) queueFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) queueFiles(e.target.files);
+    });
+
+    function queueFiles(files) {
+      for (const f of files) stagedFiles.push(f);
+      renderStagedItems();
+    }
+
+    function renderStagedItems() {
+      const container = document.getElementById('stagedContainer');
+      const list = document.getElementById('stagedFilesList');
+      list.innerHTML = '';
+
+      if (!stagedFiles.length) {
+        container.classList.add('hidden');
+        return;
+      }
 
       container.classList.remove('hidden');
-      btnText.innerText = 'Stop Camera Scanner';
-
-      // WillReadFrequently eliminates the Canvas2D readback warning
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-      const scan = () => {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          canvas.height = video.videoHeight;
-          canvas.width = video.videoWidth;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'dontInvert'
-          });
-
-          if (code && code.data && !isProcessingPayload) {
-            playChime(880, 0.15);
-            stopCameraScanner();
-            container.classList.add('hidden');
-            btnText.innerText = mode === 'host' ? 'Open Desktop Camera to Scan' : 'Start Camera Scanner';
-
-            if (mode === 'host') {
-              applyAnswerInput(code.data);
-            } else {
-              handleOfferInput(code.data);
-            }
-            return;
-          }
-        }
-        scanAnimationId = requestAnimationFrame(scan);
-      };
-      scanAnimationId = requestAnimationFrame(scan);
-    } catch (err) {
-      console.error(err);
-      showToast('Camera permission denied or camera not found', 'error');
+      stagedFiles.forEach((f, idx) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800';
+        item.innerHTML = `
+          <div class="flex items-center space-x-2 truncate pr-2">
+            <i data-lucide="file" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
+            <span class="truncate">${f.name}</span>
+            <span class="text-slate-500 text-[10px]">(${formatBytes(f.size)})</span>
+          </div>
+          <button onclick="removeFile(${idx})" class="text-slate-500 hover:text-rose-400 p-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        `;
+        list.appendChild(item);
+      });
+      lucide.createIcons();
     }
-  }
 
-  function stopCameraScanner() {
-    if (scanAnimationId) {
-      cancelAnimationFrame(scanAnimationId);
-      scanAnimationId = null;
+    function removeFile(idx) {
+      stagedFiles.splice(idx, 1);
+      renderStagedItems();
     }
-    if (activeVideoStream) {
-      activeVideoStream.getTracks().forEach((t) => t.stop());
-      activeVideoStream = null;
-    }
-  }
 
-  function setupDataChannelEvents(channel) {
-    channel.onopen = () => {
-      updateStatus('Connected (Local Wi-Fi)', 'connected');
-      document.getElementById('pairingContainer').classList.add('hidden');
-      document.getElementById('transferView').classList.remove('hidden');
-      document.getElementById('transferView').classList.add('flex');
-
-      channel.bufferedAmountLowThreshold = BUFFER_LOW_WATER;
-      logTrace('WebRTC local P2P pipe opened directly over Wi-Fi.', 'success');
-      showToast('Devices successfully connected!', 'success');
-      playChime(659.25, 0.2);
+    function terminateSession() {
       stopCameraScanner();
-    };
-
-    channel.onmessage = async (e) => {
-      await handleIncomingDataChunk(e.data);
-    };
-
-    channel.onclose = () => {
-      updateStatus('Disconnected', 'unpaired');
-      logTrace('Data channel closed.', 'error');
-      terminateSession();
-    };
-
-    channel.onerror = (e) => {
-      console.error('DataChannel error:', e);
-    };
-  }
-
-  // Direct-to-Disk Receiver
-  async function handleIncomingDataChunk(data) {
-    if (typeof data === 'string') {
-      let msg = null;
-      try { msg = JSON.parse(data); } catch(e) { return; }
-
-      if (msg.type === 'START_FILE') {
-        activeFileMeta = msg;
-        receivedBytesTotal = 0;
-        transferStartTime = performance.now();
-        fallbackBuffer = [];
-        acquireWakeLock();
-
-        document.getElementById('currentFileName').innerText = `Writing: ${msg.name}`;
-        logTrace(`Incoming: ${msg.name} (${formatBytes(msg.size)})`);
-
-        if (supportsFileSystemAPI) {
-          try {
-            const fileHandle = await window.showSaveFilePicker({ suggestedName: msg.name });
-            writableStream = await fileHandle.createWritable();
-            logTrace('Direct-to-disk stream established.', 'success');
-          } catch (err) {
-            writableStream = null;
-            showToast('Disk IO cancelled, falling back to memory', 'info');
-          }
-        }
-      } else if (msg.type === 'END_FILE') {
-        if (writableStream) {
-          await writableStream.close();
-          writableStream = null;
-          logTrace(`Flushed to disk: ${activeFileMeta.name}`, 'success');
-        } else {
-          const blob = new Blob(fallbackBuffer, { type: activeFileMeta.mimeType || 'application/octet-stream' });
-          const dl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = dl;
-          a.download = activeFileMeta.name;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(dl), 4000);
-          logTrace(`Saved file: ${activeFileMeta.name}`, 'success');
-        }
-
-        playChime(880, 0.25);
-        showToast(`Completed: ${activeFileMeta.name}`, 'success');
-        releaseWakeLock();
-
-        document.getElementById('progressBar').style.width = '0%';
-        document.getElementById('percentBadge').innerText = '0%';
-        document.getElementById('currentFileName').innerText = 'Standing by...';
-        document.getElementById('speedValue').innerText = '0.0 MB/s';
-        activeFileMeta = null;
-        fallbackBuffer = [];
+      if (dataChannel) {
+        dataChannel.close();
+        dataChannel = null;
       }
-    } else {
-      const chunkLen = data.byteLength;
-      receivedBytesTotal += chunkLen;
-
-      if (writableStream) {
-        await writableStream.write(data);
-      } else {
-        fallbackBuffer.push(data);
+      if (pc) {
+        pc.close();
+        pc = null;
       }
+      compactOfferString = '';
+      compactAnswerString = '';
+      stagedFiles = [];
+      releaseWakeLock();
 
-      if (activeFileMeta) {
-        const percent = Math.min(100, Math.round((receivedBytesTotal / activeFileMeta.size) * 100));
-        document.getElementById('progressBar').style.width = `${percent}%`;
-        document.getElementById('percentBadge').innerText = `${percent}%`;
-        document.getElementById('bytesTransferred').innerText = `${formatBytes(receivedBytesTotal)} / ${formatBytes(activeFileMeta.size)}`;
-
-        const elapsedSec = (performance.now() - transferStartTime) / 1000;
-        if (elapsedSec > 0.3) {
-          const bytesPerSec = receivedBytesTotal / elapsedSec;
-          const mbPerSec = (bytesPerSec / (1024 * 1024)).toFixed(1);
-          document.getElementById('speedValue').innerText = `${mbPerSec} MB/s`;
-
-          const remBytes = activeFileMeta.size - receivedBytesTotal;
-          const eta = Math.max(0, Math.round(remBytes / bytesPerSec));
-          document.getElementById('etaTimer').innerText = `ETA: ${eta}s`;
-        }
-      }
-    }
-  }
-
-  // Saturated Sender
-  async function transmitPayload() {
-    if (!stagedFiles.length || !dataChannel || dataChannel.readyState !== 'open') {
-      return showToast('No files staged or channel not ready', 'error');
+      document.getElementById('pairingContainer').classList.remove('hidden');
+      document.getElementById('transferView').classList.add('hidden');
+      updateStatus('Unpaired', 'unpaired');
+      initHostSession();
+      showToast('Session ended', 'info');
     }
 
-    isSending = true;
-    acquireWakeLock();
-    const sendBtn = document.getElementById('sendBtn');
-    sendBtn.disabled = true;
-    sendBtn.classList.add('opacity-50');
-
-    for (let i = 0; i < stagedFiles.length; i++) {
-      const file = stagedFiles[i];
-      document.getElementById('currentFileName').innerText = `Sending: ${file.name}`;
-      logTrace(`Dispatching: ${file.name} (${formatBytes(file.size)})`);
-
-      dataChannel.send(JSON.stringify({
-        type: 'START_FILE',
-        name: file.name,
-        size: file.size,
-        mimeType: file.type
-      }));
-
-      let offset = 0;
-      transferStartTime = performance.now();
-
-      while (offset < file.size) {
-        if (dataChannel.bufferedAmount > BUFFER_HIGH_WATER) {
-          await new Promise((resolve) => {
-            const listener = () => {
-              dataChannel.removeEventListener('bufferedamountlow', listener);
-              resolve();
-            };
-            dataChannel.addEventListener('bufferedamountlow', listener);
-          });
-        }
-
-        const slice = file.slice(offset, offset + CHUNK_SIZE);
-        const buffer = await slice.arrayBuffer();
-        dataChannel.send(buffer);
-        offset += buffer.byteLength;
-
-        const percent = Math.min(100, Math.round((offset / file.size) * 100));
-        document.getElementById('progressBar').style.width = `${percent}%`;
-        document.getElementById('percentBadge').innerText = `${percent}%`;
-        document.getElementById('bytesTransferred').innerText = `${formatBytes(offset)} / ${formatBytes(file.size)}`;
-
-        const elapsedSec = (performance.now() - transferStartTime) / 1000;
-        if (elapsedSec > 0.3) {
-          const bytesPerSec = offset / elapsedSec;
-          const mbPerSec = (bytesPerSec / (1024 * 1024)).toFixed(1);
-          document.getElementById('speedValue').innerText = `${mbPerSec} MB/s`;
-
-          const remBytes = file.size - offset;
-          const eta = Math.max(0, Math.round(remBytes / bytesPerSec));
-          document.getElementById('etaTimer').innerText = `ETA: ${eta}s`;
-        }
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      if (!supportsFileSystemAPI) {
+        document.getElementById('diskSupportText').innerText = 'RAM/Blob Stream (Mobile)';
+        document.getElementById('diskSupportBadge').classList.remove('text-emerald-400');
+        document.getElementById('diskSupportBadge').classList.add('text-amber-400');
+        document.getElementById('diskStreamIndicator').innerText = 'RAM Stream';
+        document.getElementById('diskStreamIndicator').className = 'px-2 py-0.5 text-[10px] font-mono rounded bg-amber-950 border border-amber-700/60 text-amber-300';
       }
-
-      dataChannel.send(JSON.stringify({ type: 'END_FILE' }));
-      logTrace(`Dispatched: ${file.name}`, 'success');
-    }
-
-    showToast('All files sent successfully!', 'success');
-    playChime(783.99, 0.2);
-    releaseWakeLock();
-
-    stagedFiles = [];
-    document.getElementById('stagedContainer').classList.add('hidden');
-    document.getElementById('stagedFilesList').innerHTML = '';
-    sendBtn.disabled = false;
-    sendBtn.classList.remove('opacity-50');
-    document.getElementById('progressBar').style.width = '0%';
-    document.getElementById('percentBadge').innerText = '0%';
-    document.getElementById('currentFileName').innerText = 'Ready';
-    document.getElementById('speedValue').innerText = '0.0 MB/s';
-    isSending = false;
-  }
-
-  function switchPairingMode(mode) {
-    stopCameraScanner();
-    const hostTab = document.getElementById('tabHostBtn');
-    const joinTab = document.getElementById('tabJoinBtn');
-    const hostView = document.getElementById('hostView');
-    const joinView = document.getElementById('joinView');
-
-    if (mode === 'host') {
-      hostTab.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-sky-500 text-slate-950 shadow-md';
-      joinTab.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200';
-      hostView.classList.remove('hidden');
-      joinView.classList.add('hidden');
-      if (!compactOfferString) initHostSession();
-    } else {
-      joinTab.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-sky-500 text-slate-950 shadow-md';
-      hostTab.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200';
-      joinView.classList.remove('hidden');
-      hostView.classList.add('hidden');
-    }
-  }
-
-  function copyOfferPayload() {
-    if (!compactOfferString) return;
-    navigator.clipboard.writeText(compactOfferString).then(() => {
-      showToast('Offer payload copied to clipboard', 'success');
+      initHostSession();
     });
-  }
-
-  function copyAnswerPayload() {
-    if (!compactAnswerString) return;
-    navigator.clipboard.writeText(compactAnswerString).then(() => {
-      showToast('Answer payload copied to clipboard', 'success');
-    });
-  }
-
-  function applyManualOffer() {
-    const val = document.getElementById('joinManualOffer').value.trim();
-    if (!val) return showToast('Please enter offer payload', 'error');
-    handleOfferInput(val);
-  }
-
-  function applyManualAnswer() {
-    const val = document.getElementById('hostManualAnswer').value.trim();
-    if (!val) return showToast('Please enter answer payload', 'error');
-    applyAnswerInput(val);
-  }
-
-  // File UI Listeners
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-
-  dropZone.addEventListener('click', () => fileInput.click());
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('border-sky-400', 'bg-sky-950/20');
-  });
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('border-sky-400', 'bg-sky-950/20');
-  });
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('border-sky-400', 'bg-sky-950/20');
-    if (e.dataTransfer.files.length) queueFiles(e.dataTransfer.files);
-  });
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length) queueFiles(e.target.files);
-  });
-
-  function queueFiles(files) {
-    for (const f of files) stagedFiles.push(f);
-    renderStagedItems();
-  }
-
-  function renderStagedItems() {
-    const container = document.getElementById('stagedContainer');
-    const list = document.getElementById('stagedFilesList');
-    list.innerHTML = '';
-
-    if (!stagedFiles.length) {
-      container.classList.add('hidden');
-      return;
-    }
-
-    container.classList.remove('hidden');
-    stagedFiles.forEach((f, idx) => {
-      const item = document.createElement('div');
-      item.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800';
-      item.innerHTML = `
-        <div class="flex items-center space-x-2 truncate pr-2">
-          <i data-lucide="file" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
-          <span class="truncate">${f.name}</span>
-          <span class="text-slate-500 text-[10px]">(${formatBytes(f.size)})</span>
-        </div>
-        <button onclick="removeFile(${idx})" class="text-slate-500 hover:text-rose-400 p-1">
-          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-        </button>
-      `;
-      list.appendChild(item);
-    });
-    lucide.createIcons();
-  }
-
-  function removeFile(idx) {
-    stagedFiles.splice(idx, 1);
-    renderStagedItems();
-  }
-
-  function terminateSession() {
-    stopCameraScanner();
-    if (dataChannel) {
-      dataChannel.close();
-      dataChannel = null;
-    }
-    if (pc) {
-      pc.close();
-      pc = null;
-    }
-    compactOfferString = '';
-    compactAnswerString = '';
-    stagedFiles = [];
-    releaseWakeLock();
-
-    document.getElementById('pairingContainer').classList.remove('hidden');
-    document.getElementById('transferView').classList.add('hidden');
-    updateStatus('Unpaired', 'unpaired');
-    initHostSession();
-    showToast('Session ended', 'info');
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    lucide.createIcons();
-    if (!supportsFileSystemAPI) {
-      document.getElementById('diskSupportText').innerText = 'RAM/Blob Stream (Mobile)';
-      document.getElementById('diskSupportBadge').classList.remove('text-emerald-400');
-      document.getElementById('diskSupportBadge').classList.add('text-amber-400');
-      document.getElementById('diskStreamIndicator').innerText = 'RAM Stream';
-      document.getElementById('diskStreamIndicator').className = 'px-2 py-0.5 text-[10px] font-mono rounded bg-amber-950 border border-amber-700/60 text-amber-300';
-    }
-    initHostSession();
-  });
-</script>
+  </script>
 </body>
 </html>

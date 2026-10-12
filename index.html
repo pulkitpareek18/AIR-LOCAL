@@ -212,17 +212,22 @@
           <span id="speedValue" class="text-sm font-semibold tabular-nums">0.0 MB/s</span>
         </div>
         <div class="p-5">
-          <div class="rounded-md border border-border bg-background/50 p-4">
-            <div class="mb-2 flex items-center justify-between gap-3">
-              <span id="currentFileName" class="truncate text-xs font-medium text-muted-foreground">No active transfer</span>
-              <span id="percentBadge" class="shrink-0 text-xs font-medium tabular-nums">0%</span>
+          <div class="space-y-4">
+            <div>
+              <div class="mb-2 flex items-center justify-between">
+                <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Sent</p>
+                <span id="sentCount" class="text-[10px] tabular-nums text-muted-foreground">0</span>
+              </div>
+              <div id="sentTransfers" class="space-y-2"></div>
+              <p id="sentEmpty" class="rounded-md border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">Nothing sent yet</p>
             </div>
-            <div class="h-2 w-full overflow-hidden rounded-full bg-secondary">
-              <div id="progressBar" class="h-full w-0 rounded-full bg-primary transition-all duration-150"></div>
-            </div>
-            <div class="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-              <span id="bytesTransferred" class="tabular-nums">0 MB / 0 MB</span>
-              <span id="etaTimer" class="tabular-nums">—</span>
+            <div>
+              <div class="mb-2 flex items-center justify-between">
+                <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Received</p>
+                <span id="receivedCount" class="text-[10px] tabular-nums text-muted-foreground">0</span>
+              </div>
+              <div id="receivedTransfers" class="space-y-2"></div>
+              <p id="receivedEmpty" class="rounded-md border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">Nothing received yet</p>
             </div>
           </div>
 
@@ -298,8 +303,9 @@
   let pendingPeer = null;
   let pendingIncoming = null;       // { from, name }
   let stagedFiles = [];
-  let receiving = { meta: null, writable: null, fileHandle: null, received: 0 };
-  let lastMetricTime = 0, lastMetricBytes = 0, smoothedSpeed = 0;
+  const sendTransfers = new Map();
+  const receiveTransfers = new Map();
+  let nextTransferId = 1;
 
   // ---------- Utils ----------
   function detectKind() {
@@ -387,36 +393,41 @@
     ds.className = `mt-0.5 text-xs font-medium ${mode === 'online' ? 'text-success' : 'text-amber-500'}`;
   }
 
-  // ---------- Telemetry ----------
   const fmtMB = b => `${(b / 1048576).toFixed(1)} MB`;
-  function formatETA(s) {
-    if (!isFinite(s) || s < 0) return '—';
-    const sec = Math.round(s), pad = n => String(n).padStart(2, '0');
-    if (sec >= 3600) return `${pad(Math.floor(sec/3600))}:${pad(Math.floor((sec%3600)/60))}:${pad(sec%60)}`;
-    return `${pad(Math.floor(sec/60))}:${pad(sec%60)}`;
+  function transferCard(transfer) {
+    const pct = transfer.size ? Math.min(100, Math.round((transfer.progress / transfer.size) * 100)) : 0;
+    const tone = transfer.status === 'complete' ? 'bg-success' : transfer.status === 'error' ? 'bg-red-500' : 'bg-primary';
+    const label = transfer.status === 'complete' ? 'Complete' : transfer.status === 'error' ? 'Failed' : transfer.status === 'queued' ? 'Queued' : `${pct}%`;
+    return `<div class="rounded-md border border-border bg-background/50 p-3" data-transfer-id="${transfer.id}">
+      <div class="mb-2 flex items-center justify-between gap-3">
+        <span class="min-w-0 truncate text-xs font-medium">${esc(transfer.name)}</span>
+        <span class="shrink-0 text-[10px] font-medium tabular-nums text-muted-foreground">${label}</span>
+      </div>
+      <div class="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+        <div class="transfer-progress h-full rounded-full ${tone} transition-all duration-150" style="width:${pct}%"></div>
+      </div>
+      <div class="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+        <span class="transfer-bytes tabular-nums">${fmtMB(transfer.progress)} / ${fmtMB(transfer.size)}</span>
+        <span>${transfer.status === 'active' ? 'Transferring' : transfer.status === 'complete' ? 'Saved locally' : ''}</span>
+      </div>
+    </div>`;
   }
-  function updateTelemetry(current, total) {
-    const now = performance.now();
-    const pct = Math.min(100, Math.round((current / total) * 100));
-    document.getElementById('progressBar').style.width = pct + '%';
-    document.getElementById('percentBadge').innerText = pct + '%';
-    document.getElementById('bytesTransferred').innerText = `${fmtMB(current)} / ${fmtMB(total)}`;
-    if (!lastMetricTime) { lastMetricTime = now; lastMetricBytes = current; return; }
-    const dt = (now - lastMetricTime) / 1000;
-    if (dt >= 0.25) {
-      const speed = (current - lastMetricBytes) / dt;
-      smoothedSpeed = smoothedSpeed === 0 ? speed : smoothedSpeed * 0.7 + speed * 0.3;
-      lastMetricTime = now; lastMetricBytes = current;
-      document.getElementById('speedValue').innerText = `${(smoothedSpeed / 1048576).toFixed(1)} MB/s`;
-      document.getElementById('etaTimer').innerText = smoothedSpeed > 1024 ? formatETA((total - current) / smoothedSpeed) : '—';
+  function renderTransfers() {
+    for (const [map, containerId, emptyId, countId] of [
+      [sendTransfers, 'sentTransfers', 'sentEmpty', 'sentCount'],
+      [receiveTransfers, 'receivedTransfers', 'receivedEmpty', 'receivedCount'],
+    ]) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = [...map.values()].map(transferCard).join('');
+      document.getElementById(emptyId).classList.toggle('hidden', map.size > 0);
+      document.getElementById(countId).innerText = String(map.size);
     }
   }
-  function resetTelemetry(name) {
-    lastMetricTime = 0; lastMetricBytes = 0; smoothedSpeed = 0;
-    document.getElementById('currentFileName').innerText = name || 'No active transfer';
-    document.getElementById('currentFileName').classList.toggle('text-muted-foreground', !name);
-    document.getElementById('speedValue').innerText = '0.0 MB/s';
-    document.getElementById('etaTimer').innerText = '—';
+  function updateTransfer(map, id, patch) {
+    const transfer = map.get(id);
+    if (!transfer) return;
+    Object.assign(transfer, patch);
+    renderTransfers();
   }
 
   // ---------- Room identity (was: IP-hashed network id) ----------
@@ -703,8 +714,11 @@
   function teardownConnection(reason, silent) {
     if (pc) { try { pc.close(); } catch {} }
     pc = null; channels = []; activePeer = null;
-    if (receiving.writable) { try { receiving.writable.abort(); } catch {} }
-    receiving = { meta: null, writable: null, fileHandle: null, received: 0 };
+    for (const transfer of receiveTransfers.values()) {
+      if (transfer.writable) { try { transfer.writable.abort(); } catch {} }
+    }
+    receiveTransfers.clear();
+    renderTransfers();
     if (!silent) {
       pendingPeer = null;
       const sec = document.getElementById('transferSection');
@@ -712,8 +726,6 @@
       stagedFiles = [];
       document.getElementById('stagedContainer').classList.add('hidden');
       document.getElementById('fileInput').value = '';
-      resetTelemetry();
-      document.getElementById('progressBar').style.width = '0%';
       setStatus('Online', 'online');
       if (reason) log(reason, 'error');
     }
@@ -724,51 +736,71 @@
     if (typeof data === 'string') {
       const msg = JSON.parse(data);
       if (msg.type === 'START') {
-        receiving.meta = msg;
-        receiving.received = 0;
-        resetTelemetry(msg.name);
-        document.getElementById('currentFileName').classList.remove('text-muted-foreground');
+        const id = String(msg.transferId);
+        if (receiveTransfers.has(id)) return;
+        const transfer = { id, name: msg.name, size: msg.size, progress: 0, status: 'active', writable: null, fileHandle: null, pending: [], endReceived: false, initializing: true };
+        receiveTransfers.set(id, transfer);
+        renderTransfers();
         log(`Inbound: ${msg.name} (${fmtMB(msg.size)})`);
         try {
           if (!window.isSecureContext || !navigator.storage?.getDirectory) {
             throw new Error('HTTPS required for disk streaming.');
           }
           const root = await navigator.storage.getDirectory();
-          receiving.fileHandle = await root.getFileHandle(msg.name, { create: true });
-          receiving.writable = await receiving.fileHandle.createWritable({ keepExistingData: false });
-        } catch (err) { log(err.message, 'error'); }
-      } else if (msg.type === 'END' && receiving.meta) {
-        if (receiving.writable) {
-          await receiving.writable.close();
-          receiving.writable = null;
-          const file = await receiving.fileHandle.getFile();
-          const url = URL.createObjectURL(file);
-          const a = document.createElement('a');
-          a.href = url; a.download = receiving.meta.name;
-          document.body.appendChild(a); a.click(); a.remove();
-          const name = receiving.meta.name;
-          setTimeout(async () => {
-            URL.revokeObjectURL(url);
-            try { (await navigator.storage.getDirectory()).removeEntry(name); } catch {}
-          }, 30000);
+          transfer.fileHandle = await root.getFileHandle(msg.name, { create: true });
+          transfer.writable = await transfer.fileHandle.createWritable({ keepExistingData: false });
+          for (const chunk of transfer.pending.splice(0)) {
+            await transfer.writable.write({ type: 'write', position: chunk.offset, data: chunk.payload });
+          }
+          transfer.initializing = false;
+          if (transfer.endReceived) await finishIncomingTransfer(transfer);
+        } catch (err) {
+          transfer.status = 'error';
+          renderTransfers();
+          log(err.message, 'error');
         }
-        log(`Saved: ${receiving.meta.name}`, 'success');
-        if (navigator.vibrate) navigator.vibrate(40);
-        receiving = { meta: null, writable: null, fileHandle: null, received: 0 };
-        resetTelemetry();
-        document.getElementById('progressBar').style.width = '0%';
-        document.getElementById('percentBadge').innerText = '0%';
+      } else if (msg.type === 'END') {
+        const transfer = receiveTransfers.get(String(msg.transferId));
+        if (!transfer) return;
+        transfer.endReceived = true;
+        if (transfer.writable && !transfer.initializing) await finishIncomingTransfer(transfer);
       }
       return;
     }
-    const view = new DataView(data, 0, 8);
-    const offset = Number(view.getBigUint64(0, true));
-    const payload = data.slice(8);
-    if (receiving.writable) {
-      await receiving.writable.write({ type: 'write', position: offset, data: payload });
+    const view = new DataView(data, 0, 12);
+    const id = String(view.getUint32(0, true));
+    const offset = Number(view.getBigUint64(4, true));
+    const payload = data.slice(12);
+    const transfer = receiveTransfers.get(id);
+    if (!transfer) return;
+    if (transfer.writable) {
+      await transfer.writable.write({ type: 'write', position: offset, data: payload });
+    } else {
+      transfer.pending.push({ offset, payload });
     }
-    receiving.received += payload.byteLength;
-    if (receiving.meta) updateTelemetry(receiving.received, receiving.meta.size);
+    transfer.progress += payload.byteLength;
+    renderTransfers();
+  }
+
+  async function finishIncomingTransfer(transfer) {
+    if (!transfer.writable || transfer.status === 'complete') return;
+    await transfer.writable.close();
+    transfer.writable = null;
+    const file = await transfer.fileHandle.getFile();
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url; a.download = transfer.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    const name = transfer.name;
+    setTimeout(async () => {
+      URL.revokeObjectURL(url);
+      try { (await navigator.storage.getDirectory()).removeEntry(name); } catch {}
+    }, 30000);
+    transfer.progress = transfer.size;
+    transfer.status = 'complete';
+    renderTransfers();
+    log(`Saved: ${transfer.name}`, 'success');
+    if (navigator.vibrate) navigator.vibrate(40);
   }
 
   async function transmitQueue() {
@@ -776,10 +808,20 @@
     if (!open.length || !stagedFiles.length) return;
     document.getElementById('sendBtn').disabled = true;
 
-    for (const file of stagedFiles) {
-      resetTelemetry(file.name);
-      document.getElementById('currentFileName').classList.remove('text-muted-foreground');
-      open[0].send(JSON.stringify({ type: 'START', name: file.name, size: file.size }));
+    const queue = stagedFiles.slice();
+    const transferQueue = queue.map(file => {
+      const id = String(nextTransferId++);
+      const transfer = { id, name: file.name, size: file.size, progress: 0, status: 'queued' };
+      sendTransfers.set(id, transfer);
+      return { file, id, transfer };
+    });
+    renderTransfers();
+
+    for (const { file, id, transfer } of transferQueue) {
+      transfer.status = 'active';
+      renderTransfers();
+      const startMessage = JSON.stringify({ type: 'START', transferId: id, name: file.name, size: file.size });
+      open.forEach(ch => { try { ch.send(startMessage); } catch {} });
       let offset = 0, i = 0;
       const reader = file.stream().getReader();
 
@@ -798,16 +840,20 @@
             });
           }
           const len = Math.min(CHUNK_SIZE, value.byteLength - s);
-          const packet = new Uint8Array(8 + len);
-          new DataView(packet.buffer).setBigUint64(0, BigInt(offset), true);
-          packet.set(value.subarray(s, s + len), 8);
+          const packet = new Uint8Array(12 + len);
+          const header = new DataView(packet.buffer);
+          header.setUint32(0, Number(id), true);
+          header.setBigUint64(4, BigInt(offset), true);
+          packet.set(value.subarray(s, s + len), 12);
           try { ch.send(packet.buffer); }
           catch { await new Promise(r => setTimeout(r, 15)); ch.send(packet.buffer); }
           offset += len; i++;
         }
-        updateTelemetry(offset, file.size);
+        updateTransfer(sendTransfers, id, { progress: offset });
       }
-      open[0].send(JSON.stringify({ type: 'END' }));
+      const endMessage = JSON.stringify({ type: 'END', transferId: id });
+      open.forEach(ch => { try { ch.send(endMessage); } catch {} });
+      updateTransfer(sendTransfers, id, { progress: file.size, status: 'complete' });
       log(`Sent: ${file.name}`, 'success');
     }
 

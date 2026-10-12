@@ -273,6 +273,18 @@
       try { ch.send(message); } catch {}
     });
   }
+  async function stopRemoteSendTransfer(id) {
+    const transfer = sendTransfers.get(String(id));
+    if (!transfer || !['active', 'queued'].includes(transfer.status)) return;
+    transfer.cancelled = true;
+    transfer.cancelledRemotely = true;
+    transfer.status = 'stopped';
+    transfer.permissionResolved = true;
+    transfer.resolvePermission?.(false);
+    try { await transfer.reader?.cancel(); } catch {}
+    renderTransfers();
+    log(`Stopped by receiver: ${transfer.name}`, 'error');
+  }
   function cancelTransfer(direction, id) {
     const map = direction === 'send' ? sendTransfers : receiveTransfers;
     const transfer = map.get(id);
@@ -292,6 +304,7 @@
     }
     if (direction === 'receive') {
       sendTransferControl('CANCEL', id);
+      if (activePeer) signal(activePeer, { t: 'transfer-cancel', transferId: id });
       discardReceiveTransfer(transfer);
     }
     renderTransfers();
@@ -609,6 +622,10 @@
         teardownConnection(`${msg.name || 'Device'} disconnected`);
         return;
       }
+      case 'transfer-cancel': {
+        await stopRemoteSendTransfer(msg.transferId);
+        return;
+      }
     }
   }
 
@@ -756,15 +773,8 @@
         const id = String(msg.transferId);
         const transfer = receiveTransfers.get(id);
         const sendingTransfer = sendTransfers.get(id);
-        if (sendingTransfer && ['active', 'queued'].includes(sendingTransfer.status)) {
-          sendingTransfer.cancelled = true;
-          sendingTransfer.cancelledRemotely = true;
-          sendingTransfer.status = 'stopped';
-          sendingTransfer.permissionResolved = true;
-          sendingTransfer.resolvePermission?.(false);
-          try { await sendingTransfer.reader?.cancel(); } catch {}
-          renderTransfers();
-          log(`Stopped by receiver: ${sendingTransfer.name}`, 'error');
+        if (sendingTransfer) {
+          await stopRemoteSendTransfer(id);
           return;
         }
         if (!transfer) return;

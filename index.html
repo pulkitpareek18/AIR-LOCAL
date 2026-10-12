@@ -454,6 +454,7 @@
     setStatus('Connecting', 'off');
     const url = `${RELAY_URL}/room/${networkId}`;
     dbg('relay=' + RELAY_URL);
+    dbg('room=' + networkId + ' ua=' + navigator.userAgent.slice(0, 36));
     dbg('WS-> ' + url);
     try { ws = new WebSocket(url); }
     catch (e) { dbg('WS ctor fail: ' + e.message); scheduleReconnect(); return; }

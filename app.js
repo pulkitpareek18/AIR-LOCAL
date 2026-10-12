@@ -199,15 +199,8 @@
       </div>
     </div>`;
   }
-  function fileKey(file) {
-    return `${file.name}\u0000${file.size}\u0000${file.lastModified || 0}`;
-  }
-  function describeDuplicates(files) {
-    const counts = new Map();
-    for (const file of files) counts.set(fileKey(file), (counts.get(fileKey(file)) || 0) + 1);
-    return [...counts.entries()]
-      .filter(([, count]) => count > 1)
-      .map(([key, count]) => `${key.split('\u0000')[0]} (${count} copies)`);
+  function filePath(file) {
+    return file.webkitRelativePath || file.name;
   }
   function updateTransferCard(transfer) {
     const card = document.querySelector(`[data-transfer-id="${CSS.escape(transfer.id)}"][data-direction="${transfer.direction}"]`);
@@ -707,29 +700,6 @@
             throw new Error('HTTPS required for disk streaming.');
           }
           const root = await navigator.storage.getDirectory();
-          let existing = [...receiveTransfers.values()].some(
-            item => item.id !== id && item.name === msg.name && item.status === 'complete'
-          );
-          try {
-            await root.getFileHandle(msg.name);
-            existing = true;
-          } catch (err) {
-            if (err.name !== 'NotFoundError') throw err;
-          }
-          if (existing) {
-            const overwrite = await requestConfirmation(
-              `A file named "${msg.name}" already exists`,
-              'Replace the existing local file with this incoming file?',
-              'Replace file',
-              true
-            );
-            if (!overwrite) {
-              transfer.status = 'stopped';
-              sendTransferControl('REJECT', id);
-              renderTransfers();
-              return;
-            }
-          }
           transfer.fileHandle = await root.getFileHandle(msg.name, { create: true });
           transfer.writable = await transfer.fileHandle.createWritable({ keepExistingData: false });
           sendTransferControl('READY', id);
@@ -816,16 +786,9 @@
     const queue = stagedFiles.slice();
     const totalSize = queue.reduce((sum, file) => sum + file.size, 0);
     const fileLabel = queue.length === 1 ? 'file' : 'files';
-    const duplicateNames = describeDuplicates(queue);
-    const alreadySent = queue
-      .filter(file => [...sendTransfers.values()].some(transfer => transfer.fileKey === fileKey(file)));
-    const duplicateWarning = [
-      duplicateNames.length ? `Duplicate selections:\n${duplicateNames.join('\n')}` : '',
-      alreadySent.length ? `Already sent before:\n${alreadySent.map(file => file.name).join('\n')}` : '',
-    ].filter(Boolean).join('\n\n');
     const confirmed = await requestConfirmation(
       `Add ${queue.length} ${fileLabel} to the send queue?`,
-      `Total size: ${fmtMB(totalSize)}\n\n${duplicateWarning ? `${duplicateWarning}\n\n` : ''}Files will be transferred one after another.`,
+      `Total size: ${fmtMB(totalSize)}\n\nFiles will be transferred one after another.`,
       'Add to queue'
     );
     if (!confirmed) return;
@@ -834,7 +797,7 @@
 
     const transferQueue = queue.map(file => {
       const id = String(nextTransferId++);
-      const transfer = { id, direction: 'send', fileKey: fileKey(file), name: file.name, size: file.size, progress: 0, speed: 0, startedAt: 0, lastSampleTime: 0, lastSampleBytes: 0, lastRenderTime: 0, status: 'queued' };
+      const transfer = { id, direction: 'send', name: file.name, size: file.size, progress: 0, speed: 0, startedAt: 0, lastSampleTime: 0, lastSampleBytes: 0, lastRenderTime: 0, status: 'queued' };
       sendTransfers.set(id, transfer);
       return { file, id, transfer };
     });
@@ -995,7 +958,18 @@
 
   function stageFiles(files) {
     if (!files.length) return;
-    stagedFiles = [...stagedFiles, ...files];
+    const queuedPaths = new Set(stagedFiles.map(filePath));
+    const additions = [];
+    for (const file of files) {
+      const path = filePath(file);
+      if (queuedPaths.has(path)) {
+        log(`Already added to send queue: ${path}`, 'error');
+        continue;
+      }
+      queuedPaths.add(path);
+      additions.push(file);
+    }
+    stagedFiles = [...stagedFiles, ...additions];
     renderStagedQueue();
   }
 

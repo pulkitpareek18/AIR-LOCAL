@@ -15,6 +15,9 @@
   const NUM_CHANNELS = 4;
   const BUFFER_HIGH = 4 * 1024 * 1024;
   const BUFFER_LOW = 1 * 1024 * 1024;
+  const MAX_QUEUE_FILES = 100;
+  const MAX_FILE_BYTES = 10 * 1024 * 1024 * 1024;
+  const MAX_QUEUE_BYTES = 25 * 1024 * 1024 * 1024;
   const PROTO_VER = 1;
   const SESSION_ID = crypto.randomUUID();
   const ICE_SERVERS = [{ urls: ['stun:stun.l.google.com:19302'] }];
@@ -318,6 +321,23 @@
     dialog.showModal();
     document.querySelector('#queueNoticeDialog button')?.focus();
   }
+  function checkBrowserSupport() {
+    const missing = [];
+    if (!window.isSecureContext) missing.push('HTTPS');
+    if (!window.RTCPeerConnection) missing.push('WebRTC');
+    if (!window.WebSocket) missing.push('WebSocket');
+    if (!navigator.storage?.getDirectory) missing.push('OPFS file storage');
+    if (missing.length) {
+      const banner = document.getElementById('compatibilityBanner');
+      const detail = document.getElementById('compatibilityDetails');
+      if (banner && detail) {
+        detail.textContent = `This browser is missing: ${missing.join(', ')}. Use the latest Chrome, Safari, Edge, or Firefox over HTTPS.`;
+        banner.classList.remove('hidden');
+      }
+      return false;
+    }
+    return true;
+  }
   function closeQueueNotice() {
     const dialog = document.getElementById('queueNoticeDialog');
     if (dialog?.open) dialog.close();
@@ -469,6 +489,7 @@
       let msg; try { msg = JSON.parse(e.data); } catch { return; }
       if (!msg || msg.v !== PROTO_VER) return;
       if (msg.type === 'peers') syncPeers(msg.peers || []);
+      else if (msg.type === 'error' && msg.code === 'room-full') showToast('Room is full', 'Use another room code to connect more devices.', 'error');
       else if (msg.type === 'signal') handleSignal(msg).catch(err => log(`Signal error: ${err.message}`, 'error'));
       // ping frames are answered by the DO auto-response; nothing to do
     };
@@ -1169,16 +1190,23 @@
   function stageFiles(files) {
     if (!files.length) return;
     const queuedPaths = new Set(stagedFiles.map(filePath));
+    let queuedBytes = stagedFiles.reduce((sum, file) => sum + file.size, 0);
     const additions = [];
     const duplicates = [];
+    const rejected = [];
     for (const file of files) {
       const path = filePath(file);
       if (queuedPaths.has(path)) {
         duplicates.push(path);
         continue;
       }
+      if (file.size > MAX_FILE_BYTES || additions.length + stagedFiles.length >= MAX_QUEUE_FILES || queuedBytes + file.size > MAX_QUEUE_BYTES) {
+        rejected.push(path);
+        continue;
+      }
       queuedPaths.add(path);
       additions.push(file);
+      queuedBytes += file.size;
     }
     stagedFiles = [...stagedFiles, ...additions];
     renderStagedQueue();
@@ -1188,11 +1216,16 @@
       showQueueDuplicateAlert(uniqueDuplicates);
       showToast('Already added to queue', `${uniqueDuplicates.length} duplicate ${uniqueDuplicates.length === 1 ? 'file was' : 'files were'} skipped.`, 'warning');
     }
+    if (rejected.length) {
+      log(`Queue limits blocked: ${rejected.join(', ')}`, 'error');
+      showToast('Queue limit reached', 'Up to 100 files, 25 GB total, and 10 GB per file are supported.', 'warning');
+    }
   }
 
   // ---------- Boot ----------
   window.addEventListener('DOMContentLoaded', async () => {
     applyTheme(currentTheme());
+    checkBrowserSupport();
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (currentTheme() === 'device') applyTheme('device');
     });

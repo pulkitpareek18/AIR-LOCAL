@@ -17,49 +17,6 @@
       document.documentElement.classList.toggle('light', !dark);
     })();
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    // shadcn/ui zinc-dark design tokens (same palette as ui.shadcn.com dark)
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        container: { center: true, padding: '1rem', screens: { '2xl': '896px' } },
-        extend: {
-          colors: {
-            border: 'hsl(var(--border))',
-            input: 'hsl(var(--input))',
-            ring: 'hsl(var(--ring))',
-            background: 'hsl(var(--background))',
-            foreground: 'hsl(var(--foreground))',
-            primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
-            secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
-            destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
-            muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
-            accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
-            card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
-            popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
-            success: 'hsl(var(--success))',
-            warning: 'hsl(var(--warning))',
-          },
-          borderRadius: { lg: '0.5rem', md: 'calc(0.5rem - 2px)', sm: 'calc(0.5rem - 4px)' },
-          fontFamily: {
-            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
-          },
-          keyframes: {
-            'fade-in': { from: { opacity: 0 }, to: { opacity: 1 } },
-            'zoom-in': { from: { opacity: 0, transform: 'scale(.96)' }, to: { opacity: 1, transform: 'scale(1)' } },
-            'slide-up': { from: { opacity: 0, transform: 'translateY(6px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
-          },
-          animation: {
-            'fade-in': 'fade-in .2s ease-out',
-            'zoom-in': 'zoom-in .18s ease-out',
-            'slide-up': 'slide-up .22s ease-out',
-          },
-        },
-      },
-    };
-  </script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link rel="stylesheet" href="styles.css">
@@ -102,6 +59,10 @@
         <div class="min-w-0">
           <p class="font-medium">Connection lost</p>
           <p class="mt-0.5 text-xs text-muted-foreground">The active transfer was canceled. Your remaining queued files are still here.</p>
+        </div>
+        <div id="compatibilityBanner" class="hidden rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm" role="alert">
+          <p class="font-medium text-destructive">This browser is not fully supported</p>
+          <p id="compatibilityDetails" class="mt-1 text-xs text-muted-foreground"></p>
         </div>
       </div>
       <button onclick="retryConnection()" class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">

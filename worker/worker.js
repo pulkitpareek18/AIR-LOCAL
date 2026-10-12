@@ -4,6 +4,8 @@
 
 const PROTO_VER = 1;
 const STALE_MS = 65000;
+const MAX_PEERS = 12;
+const SID_PATTERN = /^[a-zA-Z0-9-]{8,128}$/;
 
 export default {
   async fetch(request, env) {
@@ -59,7 +61,7 @@ export class Room {
   async webSocketMessage(ws, raw) {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
-    if (!msg || msg.v !== PROTO_VER || typeof msg.sid !== 'string') return;
+    if (!msg || msg.v !== PROTO_VER || typeof msg.sid !== 'string' || !SID_PATTERN.test(msg.sid)) return;
 
     switch (msg.type) {
       case 'ping':
@@ -74,6 +76,11 @@ export class Room {
         const name = String(msg.name || 'Device').slice(0, 48);
         const kind = String(msg.kind || 'other').slice(0, 16);
         const previous = this.peers.get(msg.sid);
+        if (!previous && this.peers.size >= MAX_PEERS) {
+          try { ws.send(JSON.stringify({ v: PROTO_VER, type: 'error', code: 'room-full', message: 'This room is full.' })); } catch {}
+          try { ws.close(1013, 'Room full'); } catch {}
+          return;
+        }
         if (previous && previous.ws !== ws) {
           try { previous.ws.close(); } catch {}
         }
@@ -84,6 +91,7 @@ export class Room {
         break;
       }
       case 'signal': {
+        if (!msg.to || !SID_PATTERN.test(msg.to) || !msg.payload || JSON.stringify(msg.payload).length > 128 * 1024) return;
         const target = this.peers.get(msg.to);
         const sender = this.peers.get(msg.sid);
         if (target && target.ws.readyState === 1) {

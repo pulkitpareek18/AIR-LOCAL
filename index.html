@@ -306,6 +306,8 @@
   const sendTransfers = new Map();
   const receiveTransfers = new Map();
   let nextTransferId = 1;
+  let peerDisconnectTimer = null;
+  let transmitRunning = false;
 
   // ---------- Utils ----------
   function detectKind() {
@@ -536,7 +538,10 @@
       }
     }
     for (const sid of [...peers.keys()]) {
-      if (!seen.has(sid)) removePeer(sid);
+      // A relay reconnect can briefly return a partial roster. Never tear
+      // down an established WebRTC link because signaling is momentarily
+      // unavailable.
+      if (!seen.has(sid) && sid !== activePeer) removePeer(sid);
     }
     refreshPeerUI();
   }
@@ -604,9 +609,24 @@
     pc.onicecandidate = e => {
       if (e.candidate && pendingPeer) signal(pendingPeer, { t: 'ice', c: e.candidate.toJSON() });
     };
+    const connection = pc;
     pc.onconnectionstatechange = () => {
-      if (pc && ['failed', 'disconnected', 'closed'].includes(pc.connectionState)) {
+      if (pc !== connection) return;
+      if (connection.connectionState === 'failed' || connection.connectionState === 'closed') {
+        clearTimeout(peerDisconnectTimer);
+        peerDisconnectTimer = null;
         teardownConnection('Link dropped');
+      } else if (connection.connectionState === 'disconnected') {
+        clearTimeout(peerDisconnectTimer);
+        peerDisconnectTimer = setTimeout(() => {
+          peerDisconnectTimer = null;
+          if (pc === connection && connection.connectionState === 'disconnected') {
+            teardownConnection('Link dropped');
+          }
+        }, 8000);
+      } else if (connection.connectionState === 'connected') {
+        clearTimeout(peerDisconnectTimer);
+        peerDisconnectTimer = null;
       }
     };
   }
@@ -622,6 +642,7 @@
         sec.classList.remove('hidden');
         sec.classList.add('grid');
         document.getElementById('sendTargetName').innerText = p ? p.name : 'device';
+        if (stagedFiles.length) renderStagedQueue();
         log(`Secure wire open with ${p ? p.name : 'device'}`, 'success');
         sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
@@ -712,6 +733,8 @@
   }
 
   function teardownConnection(reason, silent) {
+    clearTimeout(peerDisconnectTimer);
+    peerDisconnectTimer = null;
     if (pc) { try { pc.close(); } catch {} }
     pc = null; channels = []; activePeer = null;
     for (const transfer of receiveTransfers.values()) {
@@ -723,9 +746,6 @@
       pendingPeer = null;
       const sec = document.getElementById('transferSection');
       sec.classList.add('hidden'); sec.classList.remove('grid');
-      stagedFiles = [];
-      document.getElementById('stagedContainer').classList.add('hidden');
-      document.getElementById('fileInput').value = '';
       setStatus('Online', 'online');
       if (reason) log(reason, 'error');
     }
@@ -805,7 +825,8 @@
 
   async function transmitQueue() {
     const open = channels.filter(c => c.readyState === 'open');
-    if (!open.length || !stagedFiles.length) return;
+    if (transmitRunning || !open.length || !stagedFiles.length) return;
+    transmitRunning = true;
     document.getElementById('sendBtn').disabled = true;
 
     const queue = stagedFiles.slice();
@@ -857,10 +878,24 @@
       log(`Sent: ${file.name}`, 'success');
     }
 
-    stagedFiles = [];
-    document.getElementById('stagedContainer').classList.add('hidden');
+    stagedFiles = stagedFiles.slice(queue.length);
+    renderStagedQueue();
     document.getElementById('sendBtn').disabled = false;
-    document.getElementById('fileInput').value = '';
+    transmitRunning = false;
+    if (stagedFiles.length) setTimeout(transmitQueue, 0);
+  }
+
+  function renderStagedQueue() {
+    document.getElementById('stagedFilesList').innerHTML = stagedFiles.map(f => `
+      <div class="flex items-center justify-between rounded-md border border-border bg-background/50 px-3 py-2 text-xs">
+        <span class="flex min-w-0 items-center gap-2">
+          <i data-lucide="file" class="h-3.5 w-3.5 shrink-0 text-muted-foreground"></i>
+          <span class="truncate font-medium">${esc(f.name)}</span>
+        </span>
+        <span class="ml-2 shrink-0 text-muted-foreground tabular-nums">${fmtMB(f.size)}</span>
+      </div>`).join('');
+    lucide.createIcons();
+    document.getElementById('stagedContainer').classList.toggle('hidden', stagedFiles.length === 0);
   }
 
   // ---------- UI wiring ----------
@@ -891,7 +926,7 @@
 
   function stageFiles(files) {
     if (!files.length) return;
-    stagedFiles = files;
+    stagedFiles = [...stagedFiles, ...files];
     document.getElementById('stagedContainer').classList.remove('hidden');
     document.getElementById('stagedFilesList').innerHTML = stagedFiles.map(f => `
       <div class="flex items-center justify-between rounded-md border border-border bg-background/50 px-3 py-2 text-xs">
@@ -902,6 +937,7 @@
         <span class="ml-2 shrink-0 text-muted-foreground tabular-nums">${fmtMB(f.size)}</span>
       </div>`).join('');
     lucide.createIcons();
+    document.getElementById('stagedContainer').classList.toggle('hidden', stagedFiles.length === 0);
   }
 
   // ---------- Boot ----------

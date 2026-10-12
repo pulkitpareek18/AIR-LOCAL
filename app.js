@@ -45,6 +45,7 @@
   let peerDisconnectTimer = null;
   let transmitRunning = false;
   let transferGeneration = 0;
+  let pendingConfirmation = null;
 
   // ---------- Utils ----------
   function detectKind() {
@@ -490,10 +491,15 @@
     log(`Accepted link from ${name}`);
   }
 
-  function disconnectPeer() {
+  async function disconnectPeer() {
     if (!activePeer) return;
     const peer = peers.get(activePeer);
-    const confirmed = confirm(`Disconnect from ${peer ? peer.name : 'this device'}? Any active transfers will stop.`);
+    const confirmed = await requestConfirmation(
+      `Disconnect from ${peer ? peer.name : 'this device'}?`,
+      'Any active transfers will stop.',
+      'Disconnect',
+      true
+    );
     if (!confirmed) return;
     notifyPeerDisconnect();
     teardownConnection('Disconnected');
@@ -501,6 +507,31 @@
 
   function notifyPeerDisconnect() {
     if (activePeer) signal(activePeer, { t: 'hangup' });
+  }
+
+  function requestConfirmation(title, description, actionLabel, destructive = false) {
+    if (pendingConfirmation) pendingConfirmation.resolve(false);
+    const dialog = document.getElementById('confirmDialog');
+    const action = document.getElementById('confirmActionButton');
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmDescription').textContent = description;
+    action.textContent = actionLabel;
+    action.className = `inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md px-4 text-sm font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${destructive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`;
+    document.getElementById('confirmIcon').innerHTML = `<i data-lucide="${destructive ? 'triangle-alert' : 'circle-help'}" class="h-4 w-4"></i>`;
+    lucide.createIcons();
+    return new Promise(resolve => {
+      pendingConfirmation = { resolve, dialog };
+      dialog.showModal();
+      action.focus();
+    });
+  }
+
+  function resolveConfirmation(confirmed) {
+    if (!pendingConfirmation) return;
+    const { resolve, dialog } = pendingConfirmation;
+    pendingConfirmation = null;
+    if (dialog.open) dialog.close();
+    resolve(confirmed);
   }
 
   function teardownConnection(reason, silent) {
@@ -629,7 +660,11 @@
     const queue = stagedFiles.slice();
     const totalSize = queue.reduce((sum, file) => sum + file.size, 0);
     const fileLabel = queue.length === 1 ? 'file' : 'files';
-    const confirmed = confirm(`Add ${queue.length} ${fileLabel} to the send queue?\n\nTotal size: ${fmtMB(totalSize)}\n\nFiles will be transferred one after another.`);
+    const confirmed = await requestConfirmation(
+      `Add ${queue.length} ${fileLabel} to the send queue?`,
+      `Total size: ${fmtMB(totalSize)}\n\nFiles will be transferred one after another.`,
+      'Add to queue'
+    );
     if (!confirmed) return;
     transmitRunning = true;
     const generation = transferGeneration;
@@ -773,6 +808,12 @@
   window.addEventListener('DOMContentLoaded', async () => {
     await clearStaleOpfsFiles();
     lucide.createIcons();
+    document.getElementById('confirmDialog').addEventListener('close', () => {
+      if (!pendingConfirmation) return;
+      const { resolve } = pendingConfirmation;
+      pendingConfirmation = null;
+      resolve(false);
+    });
     // triple-tap header toggles the diagnostic overlay (for phones)
     let tapCount = 0, tapTimer = null;
     document.querySelector('header').addEventListener('click', () => {

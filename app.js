@@ -560,7 +560,7 @@
         <i data-lucide="${iconFor(peer.kind)}" class="h-5 w-5"></i>
       </div>
       <span class="peer-name w-full truncate text-xs font-medium">${esc(peer.name)}</span>
-      <span class="flex items-center gap-1 text-[10px] text-muted-foreground" title="${esc(platform)}">
+      <span class="platform-badge-icon inline-flex items-center gap-1.5 whitespace-nowrap text-[10px] leading-none text-muted-foreground" title="${esc(platform)}">
         ${platformIconFor(peer.kind)}
         ${platform}
       </span>

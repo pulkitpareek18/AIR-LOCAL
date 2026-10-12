@@ -1,5 +1,6 @@
     * { -webkit-tap-highlight-color: transparent; }
     html, body { overscroll-behavior-y: none; }
+    body { padding-bottom: env(safe-area-inset-bottom); }
     ::selection { background: hsl(240 3.7% 15.9%); color: hsl(0 0% 98%); }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -18,9 +19,15 @@
       to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     }
     .transfer-progress { transition: width .12s linear; }
+    dialog { max-height: calc(100dvh - 2rem); overflow: auto; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    @media (max-width: 640px) {
+      main.container { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+      #toastRegion { bottom: calc(1rem + env(safe-area-inset-bottom)); }
+    }
     .ring-pulse { animation: ringPulse 2.4s cubic-bezier(.4,0,.2,1) infinite; }
     @keyframes ringPulse {
-      0% { box-shadow: 0 0 0 0 hsl(142.1 70.6% 45.3% / .25); }
-      70% { box-shadow: 0 0 0 10px hsl(142.1 70.6% 45.3% / 0); }
-      100% { box-shadow: 0 0 0 0 hsl(142.1 70.6% 45.3% / 0); }
+      0% { box-shadow: 0 0 0 0 hsl(142 32% 40% / .25); }
+      70% { box-shadow: 0 0 0 10px hsl(142 32% 40% / 0); }
+      100% { box-shadow: 0 0 0 0 hsl(142 32% 40% / 0); }
     }

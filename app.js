@@ -47,6 +47,8 @@
   let transmitRunning = false;
   let transferGeneration = 0;
   let pendingConfirmation = null;
+  let pendingInput = null;
+  let toastTimer = null;
 
   // ---------- Utils ----------
   function detectKind() {
@@ -63,6 +65,60 @@
   }
   const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
   const randomName = () => `${ADJ[Math.floor(Math.random()*ADJ.length)]} ${NOUN[deviceKind][Math.floor(Math.random()*NOUN[deviceKind].length)]}`;
+  function showToast(title, description = '', type = 'info') {
+    const region = document.getElementById('toastRegion');
+    if (!region) return;
+    const icon = type === 'success' ? 'circle-check' : type === 'error' ? 'circle-alert' : type === 'warning' ? 'triangle-alert' : 'info';
+    const tone = type === 'success' ? 'text-success' : type === 'error' ? 'text-destructive' : type === 'warning' ? 'text-warning' : 'text-muted-foreground';
+    const toast = document.createElement('div');
+    toast.className = 'pointer-events-auto flex animate-slide-up items-start gap-3 rounded-lg border border-border bg-popover/95 p-3 text-sm shadow-lg backdrop-blur';
+    toast.innerHTML = `<i data-lucide="${icon}" class="mt-0.5 h-4 w-4 shrink-0 ${tone}"></i><div class="min-w-0"><p class="font-medium">${esc(title)}</p>${description ? `<p class="mt-0.5 text-xs text-muted-foreground">${esc(description)}</p>` : ''}</div><button aria-label="Dismiss notification" class="ml-auto shrink-0 text-muted-foreground hover:text-foreground">×</button>`;
+    toast.querySelector('button').onclick = () => toast.remove();
+    region.appendChild(toast);
+    lucide.createIcons();
+    setTimeout(() => toast.remove(), 4500);
+  }
+  function dismissOnboarding() {
+    localStorage.setItem('airlocal.onboarding.dismissed', '1');
+    document.getElementById('onboardingCard')?.remove();
+  }
+  function toggleSettings() {
+    const dialog = document.getElementById('settingsDialog');
+    if (dialog?.open) dialog.close(); else dialog?.showModal();
+  }
+  function closeSettings() { document.getElementById('settingsDialog')?.close(); }
+  function clearTransferHistory() {
+    sendTransfers.forEach((transfer, id) => { if (['complete', 'stopped', 'error'].includes(transfer.status)) sendTransfers.delete(id); });
+    receiveTransfers.forEach((transfer, id) => { if (['complete', 'stopped', 'error'].includes(transfer.status)) receiveTransfers.delete(id); });
+    renderTransfers();
+    showToast('Transfer history cleared', 'Active transfers were kept.', 'success');
+  }
+  function retryConnection() {
+    const peer = activePeer || pendingPeer;
+    if (peer) requestConnection(peer, false);
+    else relayConnect();
+    document.getElementById('reconnectBanner')?.classList.add('hidden');
+  }
+  function requestInput(title, description, value) {
+    const dialog = document.getElementById('inputDialog');
+    document.getElementById('inputTitle').textContent = title;
+    document.getElementById('inputDescription').textContent = description;
+    const input = document.getElementById('inputValue');
+    input.value = value;
+    return new Promise(resolve => {
+      pendingInput = { resolve, dialog };
+      dialog.showModal();
+      input.focus();
+      input.select();
+    });
+  }
+  function resolveInput(value) {
+    if (!pendingInput) return;
+    const { resolve, dialog } = pendingInput;
+    pendingInput = null;
+    if (dialog.open) dialog.close();
+    resolve(value);
+  }
 
   // ---------- Room code (4-digit OTP, shareable or QR-scannable) ----------
   function generateRoom() { return String(Math.floor(1000 + Math.random() * 9000)); }
@@ -100,11 +156,14 @@
     renderQr();
     try { if (ws) ws.close(); } catch {} // reconnect into the new room
   }
-  function editRoom() {
-    const input = prompt('Enter the 4-digit room code (same on every device):', getRoom());
+  async function editRoom() {
+    const input = await requestInput('Change room code', 'Use the same four-digit code on every device.', getRoom());
     if (input === null) return;
     const room = sanitizeRoom(input);
-    if (room.length !== 4) return alert('Room code must be exactly 4 digits.');
+    if (room.length !== 4) {
+      showToast('Invalid room code', 'Enter exactly four digits.', 'error');
+      return;
+    }
     setRoom(room);
   }
   function roomUrl() {
@@ -122,7 +181,7 @@
     const logs = document.getElementById('eventLogs');
     const row = document.createElement('div');
     const time = new Date().toLocaleTimeString([], { hour12: false });
-    const tone = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-foreground' : 'text-muted-foreground';
+    const tone = type === 'error' ? 'text-destructive' : type === 'success' ? 'text-foreground' : 'text-muted-foreground';
     row.innerHTML = `<span class="text-zinc-600">[${time}]</span> <span class="${tone}">${esc(msg)}</span>`;
     logs.appendChild(row);
     logs.scrollTop = logs.scrollHeight;
@@ -134,7 +193,7 @@
     const ping = document.getElementById('statusPing');
     const tones = {
       online: 'bg-success',
-      busy: 'bg-amber-500',
+      busy: 'bg-warning',
       off: 'bg-zinc-500',
     };
     dot.className = `relative inline-flex h-2 w-2 rounded-full ${tones[mode] || tones.off}`;
@@ -142,7 +201,10 @@
     ping.style.display = mode === 'online' ? 'none' : '';
     const ds = document.getElementById('discoveryState');
     ds.innerText = mode === 'online' ? 'online' : mode === 'busy' ? 'pairing' : 'connecting';
-    ds.className = `mt-0.5 text-xs font-medium ${mode === 'online' ? 'text-success' : 'text-amber-500'}`;
+    ds.className = `mt-0.5 text-xs font-medium ${mode === 'online' ? 'text-success' : 'text-warning'}`;
+    const badge = document.getElementById('connectionBadge');
+    if (badge) badge.setAttribute('aria-label', `Connection status: ${label}`);
+    document.body.setAttribute('aria-busy', mode === 'off' || mode === 'busy' ? 'true' : 'false');
   }
 
   const fmtMB = b => `${(b / 1048576).toFixed(1)} MB`;
@@ -180,7 +242,7 @@
   }
   function transferCard(transfer) {
     const pct = transfer.size ? Math.min(100, Math.round((transfer.progress / transfer.size) * 100)) : 0;
-    const tone = transfer.status === 'complete' ? 'bg-success' : transfer.status === 'error' ? 'bg-red-500' : 'bg-primary';
+    const tone = transfer.status === 'complete' ? 'bg-success' : transfer.status === 'error' ? 'bg-destructive' : 'bg-primary';
     const label = transfer.status === 'complete' ? 'Complete' : transfer.status === 'error' ? 'Failed' : transfer.status === 'stopped' ? 'Stopped' : transfer.status === 'queued' ? 'Queued' : `${pct}%`;
     const canCancel = transfer.status === 'active' || transfer.status === 'queued';
     return `<div class="rounded-md border border-border bg-background/50 p-3" data-transfer-id="${transfer.id}" data-direction="${transfer.direction}">
@@ -188,7 +250,7 @@
         <span class="min-w-0 truncate text-xs font-medium">${esc(transfer.name)}</span>
         <span class="flex shrink-0 items-center gap-2">
           <span class="transfer-label text-[10px] font-medium tabular-nums text-muted-foreground">${label}</span>
-          ${canCancel ? `<button type="button" onclick="cancelTransfer('${transfer.direction}', '${transfer.id}')" class="rounded px-1 text-[10px] text-muted-foreground hover:bg-destructive/10 hover:text-red-400">${transfer.status === 'active' ? 'Cancel' : 'Remove'}</button>` : ''}
+          ${canCancel ? `<button type="button" onclick="cancelTransfer('${transfer.direction}', '${transfer.id}')" class="rounded px-1 text-[10px] text-muted-foreground hover:bg-destructive/10 hover:text-destructive">${transfer.status === 'active' ? 'Cancel' : 'Remove'}</button>` : ''}
         </span>
       </div>
       <div class="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
@@ -229,9 +291,9 @@
     const label = card.querySelector('.transfer-label');
     if (bytes) bytes.textContent = `${fmtMB(transfer.progress)} / ${fmtMB(transfer.size)}`;
     if (metrics) metrics.textContent = transfer.status === 'active'
-      ? `${fmtSpeed(transfer.speed)} · ETA ${formatETA((transfer.size - transfer.progress) / transfer.speed)}`
-      : transfer.status === 'complete' ? 'Complete' : transfer.status;
-    if (label) label.textContent = transfer.status === 'active' ? `${pct}%` : transfer.status === 'stopped' ? 'Stopped' : transfer.status;
+      ? `${fmtSpeed(transfer.speed)} · About ${formatETA((transfer.size - transfer.progress) / transfer.speed)} left`
+      : transfer.status === 'complete' ? 'Saved successfully' : transfer.status === 'stopped' ? 'Transfer canceled' : transfer.status;
+    if (label) label.textContent = transfer.status === 'active' ? `${pct}%` : transfer.status === 'stopped' ? 'Canceled' : transfer.status;
   }
   function renderTransfers() {
     for (const [map, containerId, emptyId, countId] of [
@@ -284,6 +346,7 @@
     try { await transfer.reader?.cancel(); } catch {}
     renderTransfers();
     log(`Stopped by receiver: ${transfer.name}`, 'error');
+    showToast('Transfer canceled', `${transfer.name} was canceled by the receiving device.`, 'warning');
   }
   function cancelTransfer(direction, id) {
     const map = direction === 'send' ? sendTransfers : receiveTransfers;
@@ -308,6 +371,7 @@
       discardReceiveTransfer(transfer);
     }
     renderTransfers();
+    showToast('Transfer canceled', `${transfer.name} was canceled.`, 'warning');
   }
 
   // ---------- Room identity (was: IP-hashed network id) ----------
@@ -422,6 +486,12 @@
       if (!seen.has(sid) && sid !== activePeer) removePeer(sid);
     }
     refreshPeerUI();
+    const title = document.getElementById('emptyStateTitle');
+    const description = document.getElementById('emptyStateDescription');
+    if (title && !roster.filter(p => p.sid !== SESSION_ID).length) {
+      title.textContent = wsOpen ? 'No other devices found' : 'Looking for devices…';
+      description.textContent = wsOpen ? 'Open AirLocal on another device and use the same room code, or scan this device’s QR code.' : 'Connecting to the discovery service…';
+    }
     if (qrTargetSid && !qrConnectionStarted && peers.has(qrTargetSid)) {
       qrConnectionStarted = true;
       requestConnection(qrTargetSid, true, qrPairToken);
@@ -449,11 +519,13 @@
 
   function peerMarkup(peer) {
     const connected = activePeer === peer.sid;
+    const platform = { ios: 'iOS', android: 'Android', windows: 'Windows', mac: 'macOS', linux: 'Linux' }[peer.kind] || 'Device';
     return `
       <div class="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
         <i data-lucide="${iconFor(peer.kind)}" class="h-5 w-5"></i>
       </div>
       <span class="peer-name w-full truncate text-xs font-medium">${esc(peer.name)}</span>
+      <span class="text-[10px] text-muted-foreground">${platform}</span>
       <span class="-mt-1.5 text-[10px] font-medium uppercase tracking-wider ${connected ? 'text-success' : 'text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'}">${connected ? 'connected' : 'connect'}</span>`;
   }
 
@@ -551,6 +623,8 @@
         document.getElementById('disconnectTargetName').innerText = p ? p.name : 'device';
         if (stagedFiles.length) renderStagedQueue();
         log(`Secure wire open with ${p ? p.name : 'device'}`, 'success');
+        showToast('Connected securely', `Ready to send files to ${p ? p.name : 'your device'}.`, 'success');
+        renderStagedQueue();
         sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     };
@@ -620,6 +694,8 @@
       }
       case 'hangup': {
         teardownConnection(`${msg.name || 'Device'} disconnected`);
+        showToast('Connection lost', 'Your remaining queued files are still here.', 'warning');
+        document.getElementById('reconnectBanner')?.classList.remove('hidden');
         return;
       }
       case 'transfer-cancel': {
@@ -710,6 +786,10 @@
       sec.classList.add('hidden'); sec.classList.remove('grid');
       setStatus('Online', 'online');
       if (reason) log(reason, 'error');
+      if (reason === 'Link dropped') {
+        document.getElementById('reconnectBanner')?.classList.remove('hidden');
+        showToast('Connection interrupted', 'Reconnect to continue sending.', 'warning');
+      }
     }
   }
 
@@ -834,6 +914,7 @@
     finalizeTransferTelemetry(transfer);
     renderTransfers();
     log(`Saved: ${transfer.name}`, 'success');
+    showToast('Transfer complete', `${transfer.name} was saved successfully.`, 'success');
     if (navigator.vibrate) navigator.vibrate(40);
   }
 
@@ -954,6 +1035,7 @@
         transfer.status = 'stopped';
         transfer.reader = null;
         renderTransfers();
+        showToast('Transfer canceled', `${file.name} was canceled. Moving to the next file.`, 'warning');
         continue;
       }
       transfer.reader = null;
@@ -963,6 +1045,7 @@
       finalizeTransferTelemetry(transfer);
       renderTransfers();
       log(`Sent: ${file.name}`, 'success');
+      showToast('Transfer complete', `${file.name} was sent successfully.`, 'success');
     }
 
     stagedFiles = stagedFiles.slice(queue.length);
@@ -976,15 +1059,28 @@
       <div class="flex items-center justify-between rounded-md border border-border bg-background/50 px-3 py-2 text-xs">
         <span class="flex min-w-0 items-center gap-2">
           <i data-lucide="file" class="h-3.5 w-3.5 shrink-0 text-muted-foreground"></i>
-          <span class="truncate font-medium">${esc(f.name)}</span>
+          <span class="min-w-0 truncate font-medium" title="${esc(filePath(f))}">${esc(f.name)}<span class="ml-1 font-normal text-muted-foreground">${esc(filePath(f) === f.name ? '' : `· ${filePath(f)}`)}</span></span>
         </span>
         <span class="ml-2 flex shrink-0 items-center gap-2 text-muted-foreground">
           <span class="tabular-nums">${fmtMB(f.size)}</span>
-          <button type="button" onclick="removeStagedFile(${index})" class="rounded px-1 text-[10px] hover:bg-destructive/10 hover:text-red-400" title="Remove from queue">Remove</button>
+          <button type="button" onclick="removeStagedFile(${index})" class="rounded px-1 text-[10px] hover:bg-destructive/10 hover:text-destructive" title="Remove from queue">Remove</button>
         </span>
       </div>`).join('');
     lucide.createIcons();
     document.getElementById('stagedContainer').classList.toggle('hidden', stagedFiles.length === 0);
+    const total = stagedFiles.reduce((sum, file) => sum + file.size, 0);
+    const summary = document.getElementById('queueSummary');
+    if (summary) summary.textContent = `${stagedFiles.length} ${stagedFiles.length === 1 ? 'file' : 'files'} · ${fmtMB(total)}`;
+    const sendBtn = document.getElementById('sendBtn');
+    if (sendBtn) sendBtn.disabled = !activePeer || !stagedFiles.length || transmitRunning;
+    const clearBtn = document.getElementById('clearQueueBtn');
+    if (clearBtn) clearBtn.disabled = !stagedFiles.length;
+  }
+  function clearStagedQueue() {
+    if (!stagedFiles.length) return;
+    stagedFiles = [];
+    renderStagedQueue();
+    showToast('Send queue cleared');
   }
   function removeStagedFile(index) {
     if (index < 0 || index >= stagedFiles.length) return;
@@ -993,8 +1089,8 @@
   }
 
   // ---------- UI wiring ----------
-  function renameSelf() {
-    const name = prompt('Device name shown to others:', deviceName);
+  async function renameSelf() {
+    const name = await requestInput('Rename this device', 'This name will be shown to nearby devices.', deviceName);
     if (!name || !name.trim()) return;
     deviceName = name.trim().slice(0, 32);
     localStorage.setItem('airlocal.name', deviceName);
@@ -1038,6 +1134,7 @@
       const uniqueDuplicates = [...new Set(duplicates)];
       uniqueDuplicates.forEach(path => log(`Already added to send queue: ${path}`, 'error'));
       showQueueDuplicateAlert(uniqueDuplicates);
+      showToast('Already added to queue', `${uniqueDuplicates.length} duplicate ${uniqueDuplicates.length === 1 ? 'file was' : 'files were'} skipped.`, 'warning');
     }
   }
 
@@ -1050,6 +1147,15 @@
       const { resolve } = pendingConfirmation;
       pendingConfirmation = null;
       resolve(false);
+    });
+    document.getElementById('inputDialog').addEventListener('close', () => {
+      if (!pendingInput) return;
+      const { resolve } = pendingInput;
+      pendingInput = null;
+      resolve(null);
+    });
+    document.getElementById('inputValue').addEventListener('keydown', event => {
+      if (event.key === 'Enter') resolveInput(event.currentTarget.value);
     });
     // triple-tap header toggles the diagnostic overlay (for phones)
     let tapCount = 0, tapTimer = null;
@@ -1072,6 +1178,11 @@
     document.getElementById('selfAvatar').innerHTML = `<i data-lucide="${iconFor(deviceKind)}" class="h-4 w-4"></i>`;
     lucide.createIcons();
     setupDropZone();
+    if (localStorage.getItem('airlocal.onboarding.dismissed') === '1') {
+      document.getElementById('onboardingCard')?.remove();
+    }
+    renderStagedQueue();
+    if (document.getElementById('settingsDialog')) lucide.createIcons();
 
     qrTargetSid = sanitizeSid(new URLSearchParams(location.search).get('device'));
     qrPairToken = new URLSearchParams(location.search).get('pair');

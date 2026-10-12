@@ -19,7 +19,7 @@
   const SESSION_ID = crypto.randomUUID();
   const ICE_SERVERS = [{ urls: ['stun:stun.l.google.com:19302'] }];
 
-  const ADJ = ['Amber','Azure','Crimson','Jade','Ivory','Onyx','Ruby','Slate','Cobalt','Ember','Frost','Nova','Pixel','Quartz','Sage','Storm','Vivid','Zephyr','Lunar','Bolt'];
+  const ADJ = ['Mast','Jhakaas','Bindass','Dhansu','Natkhat','Rangeela','Tez','Zabardast','Chulbula','Shaandar','Bindaas','Mastana','Filmy','Pataka','Jugadu','Hatke','Desi','Nawab','Tashan','Dhamaka'];
   const PLATFORM_NAME = { ios: 'iOS', android: 'Android', windows: 'Windows', mac: 'Mac', linux: 'Linux', other: 'Device' };
 
   // ---------- State ----------
@@ -63,9 +63,13 @@
   function iconFor(kind) {
     return { ios: 'smartphone', android: 'smartphone', windows: 'monitor', mac: 'laptop', linux: 'hard-drive' }[kind] || 'monitor';
   }
+  function platformIconFor(kind) {
+    return { ios: 'apple', android: 'smartphone', windows: 'monitor', mac: 'laptop', linux: 'terminal', other: 'hard-drive' }[kind] || 'monitor';
+  }
   const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
   const randomName = () => `${ADJ[Math.floor(Math.random() * ADJ.length)]} ${PLATFORM_NAME[deviceKind]}`;
   const generatedBrandNames = /^(Amber|Azure|Crimson|Jade|Ivory|Onyx|Ruby|Slate|Cobalt|Ember|Frost|Nova|Pixel|Quartz|Sage|Storm|Vivid|Zephyr|Lunar|Bolt) (iPhone|iPad|MacBook|Pixel|Galaxy|OnePlus|Xiaomi|Surface|ThinkPad|Legion|iMac|Mac|TuxBox|Framework|XPS|Comet|Rover|Kite|Orbit)$/;
+  const generatedIndianNames = new RegExp(`^(${ADJ.join('|')}) (iOS|Android|Windows|Mac|Linux|Device)$`);
   function showToast(title, description = '', type = 'info') {
     const region = document.getElementById('toastRegion');
     if (!region) return;
@@ -548,7 +552,10 @@
         <i data-lucide="${iconFor(peer.kind)}" class="h-5 w-5"></i>
       </div>
       <span class="peer-name w-full truncate text-xs font-medium">${esc(peer.name)}</span>
-      <span class="text-[10px] text-muted-foreground">${platform}</span>
+      <span class="flex items-center gap-1 text-[10px] text-muted-foreground" title="${esc(platform)}">
+        <i data-lucide="${platformIconFor(peer.kind)}" class="h-3 w-3"></i>
+        ${platform}
+      </span>
       <span class="-mt-1.5 text-[10px] font-medium uppercase tracking-wider ${connected ? 'text-success' : 'text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'}">${connected ? 'connected' : 'connect'}</span>`;
   }
 
@@ -1197,7 +1204,7 @@
         if (!el.classList.contains('hidden')) el.textContent = (window.__dbg || []).join('\n') || 'no events yet';
       }
     });
-    if (!deviceName || generatedBrandNames.test(deviceName)) {
+    if (!deviceName || generatedBrandNames.test(deviceName) || generatedIndianNames.test(deviceName)) {
       deviceName = randomName();
       localStorage.setItem('airlocal.name', deviceName);
     }

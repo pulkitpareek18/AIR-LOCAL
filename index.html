@@ -83,10 +83,10 @@
         <span class="text-sm font-semibold tracking-tight">AirLocal</span>
       </div>
       <div class="flex items-center gap-2">
-        <div class="hidden sm:flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[11px] font-mono text-muted-foreground">
-          <i data-lucide="network" class="h-3 w-3"></i>
+        <button onclick="editRoom()" title="Change room" class="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[11px] font-mono text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <i data-lucide="users" class="h-3 w-3"></i>
           <span id="networkLabel">—</span>
-        </div>
+        </button>
         <div class="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium">
           <span class="relative flex h-2 w-2">
             <span id="statusPing" class="absolute inline-flex h-full w-full rounded-full bg-zinc-500 opacity-75 animate-ping"></span>
@@ -114,7 +114,7 @@
                 <i data-lucide="pencil" class="h-3 w-3"></i>
               </button>
             </div>
-            <p class="mt-1 text-xs text-muted-foreground">Others on this network see you as this device</p>
+            <p class="mt-1 text-xs text-muted-foreground">Room <span id="selfRoomHint" class="font-medium text-foreground/80">—</span> — both devices must match</p>
           </div>
         </div>
         <div class="shrink-0 text-right">
@@ -139,7 +139,7 @@
             <i data-lucide="loader-circle" class="h-5 w-5 animate-spin text-muted-foreground"></i>
           </div>
           <p class="mt-4 text-sm font-medium">Looking for devices…</p>
-          <p class="mt-1 max-w-[260px] text-xs text-muted-foreground">Open AirLocal on another phone or computer connected to the same Wi-Fi network.</p>
+          <p class="mt-1 max-w-[280px] text-xs text-muted-foreground">Open AirLocal on another device and set it to the same room code (tap the room name in the header).</p>
         </div>
         <div id="peerGrid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"></div>
       </div>
@@ -295,9 +295,37 @@
   const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
   const randomName = () => `${ADJ[Math.floor(Math.random()*ADJ.length)]} ${NOUN[deviceKind][Math.floor(Math.random()*NOUN[deviceKind].length)]}`;
 
-  async function sha256hex(text) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  // ---------- Room code (replaces fragile IP-based discovery) ----------
+  // Carrier NAT / different bands give devices different public IPs, breaking
+  // IP-hashed rooms. A stable, user-set room name works on any network.
+  const ROOM_WORDS = ['amber','onyx','jade','ruby','slate','cobalt','ivory','crimson','frost','nova','sage','storm','lunar','pixel','quartz','ember','vivid','zephyr','azure','bolt'];
+  const ROOM_NOUNS = ['fox','owl','deer','wolf','bear','hawk','lynx','finch','orca','puma','viper','heron','bison','cobra','drake','eagle','gecko','ibex','koala','otter'];
+  function generateRoom() {
+    return `${ROOM_WORDS[Math.floor(Math.random()*ROOM_WORDS.length)]}-${ROOM_NOUNS[Math.floor(Math.random()*ROOM_NOUNS.length)]}-${Math.floor(10+Math.random()*89)}`;
+  }
+  function sanitizeRoom(s) {
+    return String(s || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32);
+  }
+  function getRoom() {
+    let room = localStorage.getItem('airlocal.room');
+    if (!room) {
+      room = generateRoom();
+      localStorage.setItem('airlocal.room', room);
+    }
+    return room;
+  }
+  function editRoom() {
+    const current = getRoom();
+    const input = prompt('Room code — set the SAME code on both devices:', current);
+    if (input === null) return;
+    const room = sanitizeRoom(input);
+    if (!room) return;
+    localStorage.setItem('airlocal.room', room);
+    networkId = room;
+    document.getElementById('networkLabel').textContent = room;
+    document.getElementById('selfRoomHint').textContent = room;
+    // reconnect to the new room
+    try { if (ws) ws.close(); } catch {}
   }
 
   function log(msg, type = 'info') {
@@ -359,19 +387,7 @@
     document.getElementById('etaTimer').innerText = '—';
   }
 
-  // ---------- Network identity ----------
-  async function resolveNetworkId() {
-    for (const url of ['https://api.ipify.org?format=json', 'https://api64.ipify.org?format=json']) {
-      try {
-        const { ip } = await Promise.race([
-          fetch(url, { cache: 'no-store' }).then(r => r.json()),
-          new Promise((_, rej) => setTimeout(rej, 4000)),
-        ]);
-        if (ip) { dbg('netID via ' + url.split('//')[1]); return (await sha256hex(ip)).slice(0, 16); }
-      } catch (e) { dbg('netID fail ' + url + ': ' + e.message); }
-    }
-    return 'local-offline';
-  }
+  // ---------- Room identity (was: IP-hashed network id) ----------
 
   // ---------- Relay WebSocket ----------
   function dbg(msg) {
@@ -800,8 +816,10 @@
     lucide.createIcons();
     setupDropZone();
 
-    networkId = await resolveNetworkId();
-    document.getElementById('networkLabel').textContent = `net:${networkId.slice(0, 8)}`;
+    networkId = getRoom();
+    document.getElementById('networkLabel').textContent = networkId;
+    document.getElementById('selfRoomHint').textContent = networkId;
+    dbg('room = ' + networkId);
     relayConnect();
   });
 

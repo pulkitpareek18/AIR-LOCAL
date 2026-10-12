@@ -52,6 +52,7 @@
     };
   </script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     * { -webkit-tap-highlight-color: transparent; }
     html, body { overscroll-behavior-y: none; }
@@ -83,9 +84,9 @@
         <span class="text-sm font-semibold tracking-tight">AirLocal</span>
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="editRoom()" title="Change room" class="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[11px] font-mono text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-          <i data-lucide="users" class="h-3 w-3"></i>
-          <span id="networkLabel">—</span>
+        <button onclick="editRoom()" title="Change room code" class="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 font-mono text-sm font-semibold tabular-nums tracking-widest transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <i data-lucide="hash" class="h-3 w-3 text-muted-foreground"></i>
+          <span id="networkLabel">····</span>
         </button>
         <div class="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium">
           <span class="relative flex h-2 w-2">
@@ -100,27 +101,46 @@
 
   <main class="container flex-1 flex flex-col gap-4 py-6">
 
-    <!-- ── Identity card ────────────────────────────────── -->
+    <!-- ── Identity + pair card ─────────────────────────── -->
     <section class="rounded-lg border border-border bg-card text-card-foreground shadow-sm">
-      <div class="flex items-center justify-between gap-4 p-4">
-        <div class="flex items-center gap-3 min-w-0">
-          <div id="selfAvatar" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground">
-            <i data-lucide="smartphone" class="h-4 w-4"></i>
+      <div class="flex items-center justify-between border-b border-border px-5 py-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="qr-code" class="h-4 w-4 text-muted-foreground"></i>
+          <h3 class="text-sm font-semibold leading-none tracking-tight">This device</h3>
+        </div>
+        <span id="discoveryState" class="text-xs font-medium text-amber-500">connecting</span>
+      </div>
+      <div class="flex flex-col items-center gap-5 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div id="selfAvatar" class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground">
+            <i data-lucide="smartphone" class="h-5 w-5"></i>
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
               <p id="selfName" class="text-sm font-medium leading-none truncate">…</p>
-              <button onclick="renameSelf()" class="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" title="Rename device">
+              <button onclick="renameSelf()" class="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" title="Rename device">
                 <i data-lucide="pencil" class="h-3 w-3"></i>
               </button>
             </div>
-            <p class="mt-1 text-xs text-muted-foreground">Room <span id="selfRoomHint" class="font-medium text-foreground/80">—</span> — both devices must match</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">Pair by QR or room code</p>
           </div>
         </div>
-        <div class="shrink-0 text-right">
-          <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Discovery</p>
-          <p id="discoveryState" class="mt-0.5 text-xs font-medium text-amber-500">connecting</p>
+
+        <div class="flex items-center gap-4">
+          <div class="rounded-md bg-zinc-100 p-2 ring-1 ring-border">
+            <div id="qrBox" class="[&>img]:block [&>canvas]:block"></div>
+          </div>
+          <div class="text-center">
+            <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Room code</p>
+            <p id="selfRoomHint" class="mt-1 font-mono text-3xl font-semibold tabular-nums tracking-[0.2em]">----</p>
+            <button onclick="editRoom()" class="mt-2 inline-flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
+              <i data-lucide="pencil" class="h-3 w-3"></i> Change
+            </button>
+          </div>
         </div>
+      </div>
+      <div class="border-t border-border px-5 py-2.5 text-center text-xs text-muted-foreground">
+        Scan the QR with any camera, or enter the 4-digit code on the other device.
       </div>
     </section>
 
@@ -139,7 +159,7 @@
             <i data-lucide="loader-circle" class="h-5 w-5 animate-spin text-muted-foreground"></i>
           </div>
           <p class="mt-4 text-sm font-medium">Looking for devices…</p>
-          <p class="mt-1 max-w-[280px] text-xs text-muted-foreground">Open AirLocal on another device and set it to the same room code (tap the room name in the header).</p>
+          <p class="mt-1 max-w-[280px] text-xs text-muted-foreground">Scan this device's QR code, or open AirLocal on another device and enter this room's 4-digit code.</p>
         </div>
         <div id="peerGrid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"></div>
       </div>
@@ -295,37 +315,47 @@
   const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
   const randomName = () => `${ADJ[Math.floor(Math.random()*ADJ.length)]} ${NOUN[deviceKind][Math.floor(Math.random()*NOUN[deviceKind].length)]}`;
 
-  // ---------- Room code (replaces fragile IP-based discovery) ----------
-  // Carrier NAT / different bands give devices different public IPs, breaking
-  // IP-hashed rooms. A stable, user-set room name works on any network.
-  const ROOM_WORDS = ['amber','onyx','jade','ruby','slate','cobalt','ivory','crimson','frost','nova','sage','storm','lunar','pixel','quartz','ember','vivid','zephyr','azure','bolt'];
-  const ROOM_NOUNS = ['fox','owl','deer','wolf','bear','hawk','lynx','finch','orca','puma','viper','heron','bison','cobra','drake','eagle','gecko','ibex','koala','otter'];
-  function generateRoom() {
-    return `${ROOM_WORDS[Math.floor(Math.random()*ROOM_WORDS.length)]}-${ROOM_NOUNS[Math.floor(Math.random()*ROOM_NOUNS.length)]}-${Math.floor(10+Math.random()*89)}`;
-  }
-  function sanitizeRoom(s) {
-    return String(s || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32);
-  }
+  // ---------- Room code (4-digit OTP, shareable or QR-scannable) ----------
+  function generateRoom() { return String(Math.floor(1000 + Math.random() * 9000)); }
+  function sanitizeRoom(s) { return String(s || '').replace(/[^0-9]/g, '').slice(0, 4); }
   function getRoom() {
-    let room = localStorage.getItem('airlocal.room');
-    if (!room) {
+    // URL deep-link (from QR scan) wins; else persisted room; else generate
+    const urlRoom = sanitizeRoom(new URLSearchParams(location.search).get('room'));
+    if (urlRoom && urlRoom.length === 4) {
+      localStorage.setItem('airlocal.room', urlRoom);
+      history.replaceState(null, '', location.pathname); // clean the ?room= param
+      return urlRoom;
+    }
+    let room = sanitizeRoom(localStorage.getItem('airlocal.room'));
+    if (!room || room.length !== 4) {
       room = generateRoom();
       localStorage.setItem('airlocal.room', room);
     }
     return room;
   }
-  function editRoom() {
-    const current = getRoom();
-    const input = prompt('Room code — set the SAME code on both devices:', current);
-    if (input === null) return;
-    const room = sanitizeRoom(input);
-    if (!room) return;
+  function setRoom(room) {
     localStorage.setItem('airlocal.room', room);
     networkId = room;
     document.getElementById('networkLabel').textContent = room;
     document.getElementById('selfRoomHint').textContent = room;
-    // reconnect to the new room
-    try { if (ws) ws.close(); } catch {}
+    renderQr();
+    try { if (ws) ws.close(); } catch {} // reconnect into the new room
+  }
+  function editRoom() {
+    const input = prompt('Enter the 4-digit room code (same on every device):', getRoom());
+    if (input === null) return;
+    const room = sanitizeRoom(input);
+    if (room.length !== 4) return alert('Room code must be exactly 4 digits.');
+    setRoom(room);
+  }
+  function roomUrl() {
+    return `${location.origin}${location.pathname}?room=${getRoom()}`;
+  }
+  function renderQr() {
+    const box = document.getElementById('qrBox');
+    if (!box || typeof QRCode === 'undefined') return;
+    box.innerHTML = '';
+    new QRCode(box, { text: roomUrl(), width: 132, height: 132, correctLevel: QRCode.CorrectLevel.M, colorDark: '#18181b', colorLight: '#fafafa' });
   }
 
   function log(msg, type = 'info') {
@@ -819,6 +849,7 @@
     networkId = getRoom();
     document.getElementById('networkLabel').textContent = networkId;
     document.getElementById('selfRoomHint').textContent = networkId;
+    renderQr();
     dbg('room = ' + networkId);
     relayConnect();
   });

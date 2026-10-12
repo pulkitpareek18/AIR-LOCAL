@@ -252,6 +252,12 @@
     const activitySpeed = document.getElementById('speedValue');
     if (activitySpeed) activitySpeed.innerText = `${(speed / 1048576).toFixed(1)} MB/s`;
   }
+  function sendTransferControl(type, transferId) {
+    const message = JSON.stringify({ type, transferId });
+    channels.filter(ch => ch.readyState === 'open').forEach(ch => {
+      try { ch.send(message); } catch {}
+    });
+  }
   function cancelTransfer(direction, id) {
     const map = direction === 'send' ? sendTransfers : receiveTransfers;
     const transfer = map.get(id);
@@ -261,12 +267,6 @@
       map.delete(id);
       renderTransfers();
       return;
-    }
-    function sendTransferControl(type, transferId) {
-      const message = JSON.stringify({ type, transferId });
-      channels.filter(ch => ch.readyState === 'open').forEach(ch => {
-        try { ch.send(message); } catch {}
-      });
     }
     transfer.cancelled = true;
     transfer.status = 'stopped';

@@ -311,6 +311,7 @@
   let nextTransferId = 1;
   let peerDisconnectTimer = null;
   let transmitRunning = false;
+  let transferGeneration = 0;
 
   // ---------- Utils ----------
   function detectKind() {
@@ -770,15 +771,21 @@
   }
 
   function teardownConnection(reason, silent) {
+    transferGeneration++;
     clearTimeout(peerDisconnectTimer);
     peerDisconnectTimer = null;
     if (pc) { try { pc.close(); } catch {} }
     pc = null; channels = []; activePeer = null;
     refreshPeerUI();
     for (const transfer of receiveTransfers.values()) {
-      if (transfer.writable) { try { transfer.writable.abort(); } catch {} }
+      discardReceiveTransfer(transfer);
     }
     receiveTransfers.clear();
+    for (const transfer of sendTransfers.values()) {
+      if (transfer.status === 'active' || transfer.status === 'queued') transfer.status = 'canceled';
+    }
+    stagedFiles = [];
+    renderStagedQueue();
     renderTransfers();
     if (!silent) {
       pendingPeer = null;
@@ -786,6 +793,13 @@
       sec.classList.add('hidden'); sec.classList.remove('grid');
       setStatus('Online', 'online');
       if (reason) log(reason, 'error');
+    }
+  }
+
+  async function discardReceiveTransfer(transfer) {
+    try { if (transfer.writable) await transfer.writable.abort(); } catch {}
+    if (transfer.fileHandle) {
+      try { (await navigator.storage.getDirectory()).removeEntry(transfer.name); } catch {}
     }
   }
 
@@ -841,6 +855,7 @@
   }
 
   async function finishIncomingTransfer(transfer) {
+    if (receiveTransfers.get(transfer.id) !== transfer) return;
     if (!transfer.writable || transfer.status === 'complete') return;
     await transfer.writable.close();
     transfer.writable = null;
@@ -870,6 +885,7 @@
     const confirmed = confirm(`Add ${queue.length} ${fileLabel} to the send queue?\n\nTotal size: ${fmtMB(totalSize)}\n\nFiles will be transferred one after another.`);
     if (!confirmed) return;
     transmitRunning = true;
+    const generation = transferGeneration;
 
     const transferQueue = queue.map(file => {
       const id = String(nextTransferId++);
@@ -880,6 +896,10 @@
     renderTransfers();
 
     for (const { file, id, transfer } of transferQueue) {
+      if (generation !== transferGeneration || !activePeer) {
+        transmitRunning = false;
+        return;
+      }
       transfer.status = 'active';
       renderTransfers();
       const startMessage = JSON.stringify({ type: 'START', transferId: id, name: file.name, size: file.size });
@@ -888,9 +908,18 @@
       const reader = file.stream().getReader();
 
       while (true) {
+        if (generation !== transferGeneration || !activePeer) {
+          transmitRunning = false;
+          return;
+        }
         const { done, value } = await reader.read();
         if (done) break;
         for (let s = 0; s < value.byteLength; s += CHUNK_SIZE) {
+          if (generation !== transferGeneration || !activePeer) {
+            await reader.cancel();
+            transmitRunning = false;
+            return;
+          }
           const ch = open[i % open.length];
           if (ch.bufferedAmount > BUFFER_HIGH) {
             await new Promise(resolve => {
@@ -908,7 +937,20 @@
           header.setBigUint64(4, BigInt(offset), true);
           packet.set(value.subarray(s, s + len), 12);
           try { ch.send(packet.buffer); }
-          catch { await new Promise(r => setTimeout(r, 15)); ch.send(packet.buffer); }
+          catch {
+            await new Promise(r => setTimeout(r, 15));
+            if (generation !== transferGeneration || !activePeer) {
+              await reader.cancel();
+              transmitRunning = false;
+              return;
+            }
+            try { ch.send(packet.buffer); }
+            catch {
+              transfer.status = 'canceled';
+              transmitRunning = false;
+              return;
+            }
+          }
           offset += len; i++;
         }
         updateTransfer(sendTransfers, id, { progress: offset });

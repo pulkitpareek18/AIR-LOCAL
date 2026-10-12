@@ -156,9 +156,9 @@
     const transfer = map.get(id);
     if (!transfer) return;
     const now = performance.now();
+    const elapsed = (now - transfer.lastSampleTime) / 1000;
     transfer.progress = progress;
-    if (now - transfer.lastSampleTime >= 250) {
-      const elapsed = (now - transfer.lastSampleTime) / 1000;
+    if (elapsed > 0) {
       const instantSpeed = (progress - transfer.lastSampleBytes) / elapsed;
       transfer.speed = transfer.speed ? transfer.speed * 0.7 + instantSpeed * 0.3 : instantSpeed;
       transfer.lastSampleTime = now;
@@ -194,6 +194,11 @@
       document.getElementById(emptyId).classList.toggle('hidden', map.size > 0);
       document.getElementById(countId).innerText = String(map.size);
     }
+    const activeSpeeds = [...sendTransfers.values(), ...receiveTransfers.values()]
+      .filter(transfer => transfer.status === 'active')
+      .reduce((total, transfer) => total + (transfer.speed || 0), 0);
+    const activitySpeed = document.getElementById('speedValue');
+    if (activitySpeed) activitySpeed.innerText = `${(activeSpeeds / 1048576).toFixed(1)} MB/s`;
   }
   function updateTransfer(map, id, patch) {
     const transfer = map.get(id);

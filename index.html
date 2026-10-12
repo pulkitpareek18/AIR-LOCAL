@@ -266,10 +266,12 @@
   //  Transfer: WebRTC DataChannels, direct P2P (4×unordered, 64KB)
   // ================================================================
 
-  // Deployed relay (Cloudflare Worker). Override at runtime via console:
-  //   localStorage.setItem('airlocal.relay', 'wss://your-worker.workers.dev')
-  const RELAY_URL = localStorage.getItem('airlocal.relay')
-    || 'wss://airlocal-relay.iridescent-alarm.workers.dev';
+  // Deployed relay (Cloudflare Worker).
+  // Use the versioned key so stale values from older builds cannot trap a
+  // phone on an obsolete relay. A custom relay can still be supplied with
+  // localStorage.setItem('airlocal.relay.v1', 'wss://your-worker.workers.dev').
+  const RELAY_DEFAULT = 'wss://airlocal-relay.iridescent-alarm.workers.dev';
+  const RELAY_URL = localStorage.getItem('airlocal.relay.v1') || RELAY_DEFAULT;
 
   const CHUNK_SIZE = 64 * 1024;
   const NUM_CHANNELS = 4;
@@ -451,6 +453,7 @@
 
     setStatus('Connecting', 'off');
     const url = `${RELAY_URL}/room/${networkId}`;
+    dbg('relay=' + RELAY_URL);
     dbg('WS-> ' + url);
     try { ws = new WebSocket(url); }
     catch (e) { dbg('WS ctor fail: ' + e.message); scheduleReconnect(); return; }

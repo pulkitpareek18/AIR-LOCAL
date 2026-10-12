@@ -6,7 +6,7 @@ AirDrop-style file sharing for any device. Open the link on two devices on the s
 
 | Layer | Technology | Cost |
 |---|---|---|
-| Hosting | Static `index.html`, `app.js`, and `styles.css` on Vercel — no serverless functions, no KV | Free — unlimited static requests |
+| Hosting | Static Tailwind-built `index.html`, `app.js`, and `styles.css` on Vercel — no serverless functions, no KV | Free — unlimited static requests |
 | Discovery + signaling | Cloudflare Worker + Durable Object (WebSocket room per network) | Free — 100k req/day, DO hibernation (idle = ₹0) |
 | File transfer | WebRTC DataChannels, direct P2P over your LAN | Free — bytes never touch a server |
 
@@ -22,34 +22,61 @@ npx wrangler deploy
 
 Wrangler prints your Worker URL, e.g. `https://airlocal-relay.you.workers.dev`.
 
-**2. Point the app at it** — in [app.js](./app.js), set:
+**2. Point the app at it** — set the deployed Worker URL in the `RELAY_DEFAULT`
+constant in [app.js](./app.js), then deploy the frontend. Users may override it
+locally with:
 
 ```js
-const RELAY_URL = 'wss://airlocal-relay.you.workers.dev';
+localStorage.setItem('airlocal.relay.v1', 'wss://your-worker.workers.dev');
 ```
 
-> Or skip editing code: open the app once and run
-> `localStorage.setItem('airlocal.relay', 'wss://your-worker.workers.dev')` in the console.
-
-**3. Deploy the static site:**
+**3. Build and deploy the static site:**
 
 ```bash
+npm install
+npm run build
 npx vercel --prod
 ```
 
-That's it — no env vars, no build step, no database.
+Vercel also runs `npm run build` automatically from [vercel.json](./vercel.json).
+The production frontend uses compiled Tailwind CSS rather than the Tailwind CDN.
 
-### No-signup quick start
+## Privacy and security
 
-Don't want a Cloudflare login yet? Deploy to a free temporary preview account (live for 60 minutes):
+- File bytes never pass through the Worker or Vercel; WebRTC carries them directly
+  between browsers.
+- The Worker handles only room presence, WebRTC signaling, and transfer-control
+  fallback messages.
+- Room codes are discovery identifiers, not passwords. Anyone who knows a room
+  code can see the devices in that room, so use a fresh code for sensitive files.
+- QR pairing includes a device-specific token and is preferred over sharing a
+  room code manually.
+- The relay validates session identifiers, caps rooms at 12 peers, rejects
+  oversized signaling payloads, and expires inactive sessions.
 
-```bash
-cd worker
-npx wrangler deploy --temporary
-```
+## Browser support and limits
 
-A currently-deployed temporary relay is baked in for instant testing:
-`wss://airlocal-relay.iridescent-alarm.workers.dev` — it expires, so deploy your own Worker for production.
+AirLocal requires HTTPS, WebRTC, WebSockets, and Origin Private File System
+(OPFS). Use a current Chrome, Edge, Safari, or Firefox release. Private browsing
+or managed browsers may disable OPFS.
+
+The send queue accepts up to 100 files, 25 GB total, and 10 GB per file. These
+limits protect the browser from accidental memory and storage exhaustion. Actual
+transfer size and speed depend on the devices, browser, network path, and
+available storage.
+
+## Production release checklist
+
+Before sharing a public URL:
+
+1. Deploy the Worker and verify `/health` returns `{"ok":true,"v":1}`.
+2. Run `npm install`, `npm run build`, and `npm run check`.
+3. Deploy the frontend to Vercel over HTTPS.
+4. Test QR pairing and manual room pairing across iOS, Android, macOS, Windows,
+   and Linux.
+5. Test a large file, a canceled transfer, a receiver-side cancellation, and a
+   browser refresh during discovery.
+6. Use a new room code for each sensitive sharing session.
 
 ## How discovery works
 

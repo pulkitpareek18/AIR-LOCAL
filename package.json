@@ -1,0 +1,14 @@
+{
+  "name": "airlocal",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tailwindcss -i ./src/tailwind.css -o ./styles.css --minify",
+    "dev": "tailwindcss -i ./src/tailwind.css -o ./styles.css --watch",
+    "check": "node --check app.js && node --check worker/worker.js"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "tailwindcss": "^3.4.17"
+  }
+}

@@ -20,7 +20,7 @@
   const ICE_SERVERS = [{ urls: ['stun:stun.l.google.com:19302'] }];
 
   const ADJ = ['Amber','Azure','Crimson','Jade','Ivory','Onyx','Ruby','Slate','Cobalt','Ember','Frost','Nova','Pixel','Quartz','Sage','Storm','Vivid','Zephyr','Lunar','Bolt'];
-  const NOUN = { ios: ['iPhone','iPad','MacBook'], android: ['Pixel','Galaxy','OnePlus','Xiaomi'], windows: ['Surface','ThinkPad','Legion'], mac: ['MacBook','iMac','Mac'], linux: ['TuxBox','Framework','XPS'], other: ['Comet','Rover','Kite','Orbit'] };
+  const PLATFORM_NAME = { ios: 'iOS', android: 'Android', windows: 'Windows', mac: 'Mac', linux: 'Linux', other: 'Device' };
 
   // ---------- State ----------
   let networkId = null;
@@ -64,7 +64,8 @@
     return { ios: 'smartphone', android: 'smartphone', windows: 'monitor', mac: 'laptop', linux: 'hard-drive' }[kind] || 'monitor';
   }
   const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
-  const randomName = () => `${ADJ[Math.floor(Math.random()*ADJ.length)]} ${NOUN[deviceKind][Math.floor(Math.random()*NOUN[deviceKind].length)]}`;
+  const randomName = () => `${ADJ[Math.floor(Math.random() * ADJ.length)]} ${PLATFORM_NAME[deviceKind]}`;
+  const generatedBrandNames = /^(Amber|Azure|Crimson|Jade|Ivory|Onyx|Ruby|Slate|Cobalt|Ember|Frost|Nova|Pixel|Quartz|Sage|Storm|Vivid|Zephyr|Lunar|Bolt) (iPhone|iPad|MacBook|Pixel|Galaxy|OnePlus|Xiaomi|Surface|ThinkPad|Legion|iMac|Mac|TuxBox|Framework|XPS|Comet|Rover|Kite|Orbit)$/;
   function showToast(title, description = '', type = 'info') {
     const region = document.getElementById('toastRegion');
     if (!region) return;
@@ -1196,7 +1197,7 @@
         if (!el.classList.contains('hidden')) el.textContent = (window.__dbg || []).join('\n') || 'no events yet';
       }
     });
-    if (!deviceName) {
+    if (!deviceName || generatedBrandNames.test(deviceName)) {
       deviceName = randomName();
       localStorage.setItem('airlocal.name', deviceName);
     }

@@ -164,7 +164,10 @@
       transfer.lastSampleTime = now;
       transfer.lastSampleBytes = progress;
     }
-    renderTransfers();
+    if (now - (transfer.lastRenderTime || 0) >= 50 || progress >= transfer.size) {
+      transfer.lastRenderTime = now;
+      renderTransfers();
+    }
   }
 
   function finalizeTransferTelemetry(transfer) {
@@ -183,7 +186,7 @@
         <span class="shrink-0 text-[10px] font-medium tabular-nums text-muted-foreground">${label}</span>
       </div>
       <div class="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-        <div class="transfer-progress h-full rounded-full ${tone} transition-all duration-150" style="width:${pct}%"></div>
+        <div class="transfer-progress h-full rounded-full ${tone}" style="width:${pct}%"></div>
       </div>
       <div class="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
         <span class="transfer-bytes tabular-nums">${fmtMB(transfer.progress)} / ${fmtMB(transfer.size)}</span>
@@ -623,7 +626,7 @@
         const id = String(msg.transferId);
         if (receiveTransfers.has(id)) return;
         const now = performance.now();
-        const transfer = { id, name: msg.name, size: msg.size, progress: 0, speed: 0, startedAt: now, lastSampleTime: now, lastSampleBytes: 0, status: 'active', writable: null, fileHandle: null, pending: [], endReceived: false, initializing: true };
+        const transfer = { id, name: msg.name, size: msg.size, progress: 0, speed: 0, startedAt: now, lastSampleTime: now, lastSampleBytes: 0, lastRenderTime: 0, status: 'active', writable: null, fileHandle: null, pending: [], endReceived: false, initializing: true };
         receiveTransfers.set(id, transfer);
         renderTransfers();
         log(`Inbound: ${msg.name} (${fmtMB(msg.size)})`);
@@ -706,7 +709,7 @@
 
     const transferQueue = queue.map(file => {
       const id = String(nextTransferId++);
-      const transfer = { id, name: file.name, size: file.size, progress: 0, speed: 0, startedAt: 0, lastSampleTime: 0, lastSampleBytes: 0, status: 'queued' };
+      const transfer = { id, name: file.name, size: file.size, progress: 0, speed: 0, startedAt: 0, lastSampleTime: 0, lastSampleBytes: 0, lastRenderTime: 0, status: 'queued' };
       sendTransfers.set(id, transfer);
       return { file, id, transfer };
     });
@@ -720,6 +723,7 @@
       transfer.status = 'active';
       transfer.startedAt = performance.now();
       transfer.lastSampleTime = transfer.startedAt;
+      transfer.lastRenderTime = 0;
       renderTransfers();
       const startMessage = JSON.stringify({ type: 'START', transferId: id, name: file.name, size: file.size });
       open.forEach(ch => { try { ch.send(startMessage); } catch {} });
@@ -771,8 +775,8 @@
             }
           }
           offset += len; i++;
+          updateTransferTelemetry(sendTransfers, id, offset);
         }
-        updateTransferTelemetry(sendTransfers, id, offset);
       }
       const endMessage = JSON.stringify({ type: 'END', transferId: id });
       open.forEach(ch => { try { ch.send(endMessage); } catch {} });

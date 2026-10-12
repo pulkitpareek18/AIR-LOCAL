@@ -191,7 +191,7 @@
             <div id="stagedFilesList" class="mb-3 max-h-32 space-y-1.5 overflow-y-auto custom-scrollbar"></div>
             <button id="sendBtn" onclick="transmitQueue()" class="inline-flex h-9 w-full items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
               <i data-lucide="zap" class="h-3.5 w-3.5 fill-current"></i>
-              <span>Send to <span id="sendTargetName">device</span></span>
+              <span id="sendBtnLabel">Send to <span id="sendTargetName">device</span></span>
             </button>
           </div>
         </div>
@@ -766,6 +766,10 @@
   }
 
   function disconnectPeer() {
+    if (!activePeer) return;
+    const peer = peers.get(activePeer);
+    const confirmed = confirm(`Disconnect from ${peer ? peer.name : 'this device'}? Any active transfers will stop.`);
+    if (!confirmed) return;
     if (activePeer) signal(activePeer, { t: 'hangup' });
     teardownConnection('Disconnected');
   }
@@ -866,7 +870,6 @@
     const open = channels.filter(c => c.readyState === 'open');
     if (transmitRunning || !open.length || !stagedFiles.length) return;
     transmitRunning = true;
-    document.getElementById('sendBtn').disabled = true;
 
     const queue = stagedFiles.slice();
     const transferQueue = queue.map(file => {
@@ -919,7 +922,6 @@
 
     stagedFiles = stagedFiles.slice(queue.length);
     renderStagedQueue();
-    document.getElementById('sendBtn').disabled = false;
     transmitRunning = false;
     if (stagedFiles.length) setTimeout(transmitQueue, 0);
   }

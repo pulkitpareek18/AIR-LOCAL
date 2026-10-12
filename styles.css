@@ -17,6 +17,7 @@
       from { opacity: 0; transform: translate(-50%, -50%) scale(.96); }
       to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     }
+    .transfer-progress { transition: width .12s linear; }
     .ring-pulse { animation: ringPulse 2.4s cubic-bezier(.4,0,.2,1) infinite; }
     @keyframes ringPulse {
       0% { box-shadow: 0 0 0 0 hsl(142.1 70.6% 45.3% / .25); }

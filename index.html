@@ -215,6 +215,9 @@
     <footer class="mt-auto pb-2 pt-4 text-center text-xs text-muted-foreground">
       <p>End-to-end device-to-device — files never touch a server.</p>
     </footer>
+
+    <!-- mobile diagnostic overlay: triple-tap the header to toggle -->
+    <pre id="dbgOverlay" class="hidden fixed bottom-0 left-0 right-0 z-50 m-2 max-h-40 overflow-auto rounded-md border border-border bg-popover/95 p-3 font-mono text-[10px] leading-relaxed text-muted-foreground backdrop-blur custom-scrollbar"></pre>
   </main>
 
   <!-- ── Incoming connection dialog (shadcn AlertDialog-styled) ── -->
@@ -364,24 +367,36 @@
           fetch(url, { cache: 'no-store' }).then(r => r.json()),
           new Promise((_, rej) => setTimeout(rej, 4000)),
         ]);
-        if (ip) return (await sha256hex(ip)).slice(0, 16);
-      } catch { /* try next */ }
+        if (ip) { dbg('netID via ' + url.split('//')[1]); return (await sha256hex(ip)).slice(0, 16); }
+      } catch (e) { dbg('netID fail ' + url + ': ' + e.message); }
     }
     return 'local-offline';
   }
 
   // ---------- Relay WebSocket ----------
+  function dbg(msg) {
+    // on-screen debug for mobile (no devtools): triple-tap the header to peek
+    window.__dbg = window.__dbg || [];
+    window.__dbg.push(new Date().toISOString().slice(11,19) + ' ' + msg);
+    if (window.__dbg.length > 12) window.__dbg.shift();
+    const el = document.getElementById('dbgOverlay');
+    if (el && !el.classList.contains('hidden')) el.textContent = window.__dbg.join('\n');
+  }
+
   function relayConnect() {
     if (!networkId) return;
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
     setStatus('Connecting', 'off');
-    try { ws = new WebSocket(`${RELAY_URL}/room/${networkId}`); }
-    catch { scheduleReconnect(); return; }
+    const url = `${RELAY_URL}/room/${networkId}`;
+    dbg('WS-> ' + url);
+    try { ws = new WebSocket(url); }
+    catch (e) { dbg('WS ctor fail: ' + e.message); scheduleReconnect(); return; }
 
     ws.onopen = () => {
       wsOpen = true;
       setStatus('Online', 'online');
+      dbg('WS OPEN');
       log('Connected to relay — presence live', 'success');
       ws.send(JSON.stringify({ v: PROTO_VER, type: 'join', sid: SESSION_ID, name: deviceName, kind: deviceKind }));
     };
@@ -393,8 +408,8 @@
       else if (msg.type === 'signal') handleSignal(msg).catch(err => log(`Signal error: ${err.message}`, 'error'));
     };
 
-    ws.onclose = () => { wsOpen = false; scheduleReconnect(); };
-    ws.onerror = () => { try { ws.close(); } catch {} };
+    ws.onclose = e => { wsOpen = false; dbg(`WS CLOSE code=${e.code} reason=${e.reason || '-'} clean=${e.wasClean}`); scheduleReconnect(); };
+    ws.onerror = () => { dbg('WS ERROR'); try { ws.close(); } catch {} };
   }
 
   function scheduleReconnect() {
@@ -763,6 +778,19 @@
   // ---------- Boot ----------
   window.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
+    // triple-tap header toggles the diagnostic overlay (for phones)
+    let tapCount = 0, tapTimer = null;
+    document.querySelector('header').addEventListener('click', () => {
+      tapCount++;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => tapCount = 0, 500);
+      if (tapCount >= 3) {
+        tapCount = 0;
+        const el = document.getElementById('dbgOverlay');
+        el.classList.toggle('hidden');
+        if (!el.classList.contains('hidden')) el.textContent = (window.__dbg || []).join('\n') || 'no events yet';
+      }
+    });
     if (!deviceName) {
       deviceName = randomName();
       localStorage.setItem('airlocal.name', deviceName);

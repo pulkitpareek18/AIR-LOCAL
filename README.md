@@ -6,7 +6,7 @@ AirDrop-style file sharing for any device. Open the link on two devices on the s
 
 | Layer | Technology | Cost |
 |---|---|---|
-| Hosting | Single static `index.html` on Vercel — no serverless functions, no KV | Free — unlimited static requests |
+| Hosting | Static `index.html`, `app.js`, and `styles.css` on Vercel — no serverless functions, no KV | Free — unlimited static requests |
 | Discovery + signaling | Cloudflare Worker + Durable Object (WebSocket room per network) | Free — 100k req/day, DO hibernation (idle = ₹0) |
 | File transfer | WebRTC DataChannels, direct P2P over your LAN | Free — bytes never touch a server |
 
@@ -22,7 +22,7 @@ npx wrangler deploy
 
 Wrangler prints your Worker URL, e.g. `https://airlocal-relay.you.workers.dev`.
 
-**2. Point the app at it** — in [index.html](../index.html), set:
+**2. Point the app at it** — in [app.js](./app.js), set:
 
 ```js
 const RELAY_URL = 'wss://airlocal-relay.you.workers.dev';
@@ -55,13 +55,13 @@ A currently-deployed temporary relay is baked in for instant testing:
 
 1. Each device belongs to a **4-digit room code** (OTP-style, e.g. `4821`) — stable, persisted, and editable.
 2. Pair two ways:
-   - **QR**: scan the on-page QR with any phone camera — it opens `?room=<code>`, which auto-joins that room.
+   - **QR**: scan the on-page QR with any phone camera — it opens a device-specific link, joins the room, and automatically connects to the device that displayed the QR.
    - **Code**: share the 4-digit code verbally; the other device taps the room chip and enters it.
 3. All devices in the same room see each other on any network (Wi-Fi, mobile data, hotel/library LANs — no IP-matching needed).
-4. Tapping a peer sends a connect request → accept → SDP/ICE flow over the WebSocket (~5 KB).
+4. Tapping a peer sends a connect request → accept → SDP/ICE flow over the WebSocket (~5 KB). QR connections use their device pairing token to skip the approval prompt.
 5. 4 parallel unordered data channels stream the file in 64 KB chunks straight to OPFS (disk) — RAM stays flat even for 10 GB+ files.
+6. On startup, AirLocal clears abandoned files from its origin-private OPFS storage so interrupted transfers do not accumulate locally.
 
 ## Testing locally against the tunnel
 
 The Worker must be deployed (or run `npx wrangler dev` and point `RELAY_URL` at `ws://localhost:8787`) before discovery shows peers — the static page alone has no relay.
-

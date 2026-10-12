@@ -303,6 +303,7 @@
   let pendingPeer = null;
   let pendingIncoming = null;       // { from, name }
   let qrTargetSid = null;
+  let qrPairToken = null;
   let qrConnectionStarted = false;
   let stagedFiles = [];
   const sendTransfers = new Map();
@@ -333,6 +334,12 @@
   function sanitizeSid(value) {
     return /^[0-9a-f-]{36}$/i.test(String(value || '')) ? String(value) : null;
   }
+  const pairingToken = localStorage.getItem('airlocal.pairing-token') ||
+    (() => {
+      const token = crypto.randomUUID();
+      localStorage.setItem('airlocal.pairing-token', token);
+      return token;
+    })();
   function getRoom() {
     // URL deep-link (from QR scan) wins; else persisted room; else generate
     const urlRoom = sanitizeRoom(new URLSearchParams(location.search).get('room'));
@@ -365,7 +372,7 @@
     setRoom(room);
   }
   function roomUrl() {
-    const params = new URLSearchParams({ room: getRoom(), device: SESSION_ID });
+    const params = new URLSearchParams({ room: getRoom(), device: SESSION_ID, pair: pairingToken });
     return `${location.origin}${location.pathname}?${params}`;
   }
   function renderQr() {
@@ -553,7 +560,7 @@
     refreshPeerUI();
     if (qrTargetSid && !qrConnectionStarted && peers.has(qrTargetSid)) {
       qrConnectionStarted = true;
-      requestConnection(qrTargetSid);
+      requestConnection(qrTargetSid, true, qrPairToken);
       log('QR target found — requesting direct connection', 'success');
     }
   }
@@ -571,14 +578,19 @@
     btn.id = `peer-${peer.sid}`;
     btn.className = 'group flex animate-slide-up flex-col items-center gap-2.5 rounded-md border border-border bg-background/50 p-4 text-center transition-colors hover:border-muted-foreground/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
     btn.onclick = () => requestConnection(peer.sid);
-    btn.innerHTML = `
+    btn.innerHTML = peerMarkup(peer);
+    document.getElementById('peerGrid').appendChild(btn);
+    lucide.createIcons();
+  }
+
+  function peerMarkup(peer) {
+    const connected = activePeer === peer.sid;
+    return `
       <div class="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
         <i data-lucide="${iconFor(peer.kind)}" class="h-5 w-5"></i>
       </div>
       <span class="peer-name w-full truncate text-xs font-medium">${esc(peer.name)}</span>
-      <span class="-mt-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">connect</span>`;
-    document.getElementById('peerGrid').appendChild(btn);
-    lucide.createIcons();
+      <span class="-mt-1.5 text-[10px] font-medium uppercase tracking-wider ${connected ? 'text-success' : 'text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'}">${connected ? 'connected' : 'connect'}</span>`;
   }
 
   function refreshPeerUI() {
@@ -586,16 +598,23 @@
     document.getElementById('emptyState').classList.toggle('hidden', n > 0);
     document.getElementById('peerGrid').classList.toggle('hidden', n === 0);
     document.getElementById('peerCount').innerText = `${n} nearby`;
+    for (const peer of peers.values()) {
+      const el = document.getElementById(`peer-${peer.sid}`);
+      if (!el) continue;
+      el.innerHTML = peerMarkup(peer);
+      el.classList.toggle('border-success/60', activePeer === peer.sid);
+    }
+    lucide.createIcons();
   }
 
   // ---------- WebRTC ----------
-  function requestConnection(sid) {
+  function requestConnection(sid, automatic = false, pairToken = null) {
     if (activePeer === sid) return;
     if (pc) teardownConnection(null, true);
     pendingPeer = sid;
     setStatus('Requesting', 'busy');
     buildPeerConnection(true);
-    signal(sid, { t: 'connect-request' });
+    signal(sid, { t: 'connect-request', automatic, pairToken });
     const p = peers.get(sid);
     log(`Requesting link with ${p ? p.name : 'device'}…`);
   }
@@ -650,6 +669,7 @@
         activePeer = pendingPeer;
         const p = peers.get(activePeer);
         setStatus('Connected', 'online');
+        refreshPeerUI();
         const sec = document.getElementById('transferSection');
         sec.classList.remove('hidden');
         sec.classList.add('grid');
@@ -678,6 +698,11 @@
     switch (d.t) {
       case 'connect-request': {
         if (activePeer === from || pendingIncoming) return;
+        if (d.automatic && d.pairToken === pairingToken) {
+          pendingIncoming = { from, name: msg.name || 'Device' };
+          respondIncoming(true);
+          return;
+        }
         pendingIncoming = { from, name: msg.name || 'Device' };
         document.getElementById('incomingTitle').innerText = `${pendingIncoming.name} wants to send you files`;
         document.getElementById('incomingDialog').showModal();
@@ -726,7 +751,8 @@
   }
 
   function respondIncoming(accepted) {
-    document.getElementById('incomingDialog').close();
+    const dialog = document.getElementById('incomingDialog');
+    if (dialog.open) dialog.close();
     if (!pendingIncoming) return;
     const { from, name } = pendingIncoming;
     pendingIncoming = null;
@@ -749,6 +775,7 @@
     peerDisconnectTimer = null;
     if (pc) { try { pc.close(); } catch {} }
     pc = null; channels = []; activePeer = null;
+    refreshPeerUI();
     for (const transfer of receiveTransfers.values()) {
       if (transfer.writable) { try { transfer.writable.abort(); } catch {} }
     }
@@ -978,6 +1005,7 @@
     setupDropZone();
 
     qrTargetSid = sanitizeSid(new URLSearchParams(location.search).get('device'));
+    qrPairToken = new URLSearchParams(location.search).get('pair');
     if (qrTargetSid === SESSION_ID) qrTargetSid = null;
     networkId = getRoom();
     document.getElementById('networkLabel').textContent = networkId;

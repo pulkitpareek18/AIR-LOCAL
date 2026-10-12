@@ -199,6 +199,16 @@
       </div>
     </div>`;
   }
+  function fileKey(file) {
+    return `${file.name}\u0000${file.size}\u0000${file.lastModified || 0}`;
+  }
+  function describeDuplicates(files) {
+    const counts = new Map();
+    for (const file of files) counts.set(fileKey(file), (counts.get(fileKey(file)) || 0) + 1);
+    return [...counts.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([key, count]) => `${key.split('\u0000')[0]} (${count} copies)`);
+  }
   function updateTransferCard(transfer) {
     const card = document.querySelector(`[data-transfer-id="${CSS.escape(transfer.id)}"][data-direction="${transfer.direction}"]`);
     if (!card) return;
@@ -252,13 +262,18 @@
       renderTransfers();
       return;
     }
+    function sendTransferControl(type, transferId) {
+      const message = JSON.stringify({ type, transferId });
+      channels.filter(ch => ch.readyState === 'open').forEach(ch => {
+        try { ch.send(message); } catch {}
+      });
+    }
     transfer.cancelled = true;
     transfer.status = 'stopped';
+    transfer.permissionResolved = true;
+    transfer.resolvePermission?.(false);
     if (direction === 'send' && activePeer) {
-      const cancelMessage = JSON.stringify({ type: 'CANCEL', transferId: id });
-      channels.filter(ch => ch.readyState === 'open').forEach(ch => {
-        try { ch.send(cancelMessage); } catch {}
-      });
+      sendTransferControl('CANCEL', id);
     }
     if (direction === 'receive') discardReceiveTransfer(transfer);
     renderTransfers();
@@ -426,8 +441,18 @@
   }
 
   // ---------- WebRTC ----------
-  function requestConnection(sid, automatic = false, pairToken = null) {
-    if (activePeer === sid) return;
+  async function requestConnection(sid, automatic = false, pairToken = null) {
+    if (activePeer === sid) {
+      const peer = peers.get(sid);
+      const reconnect = await requestConfirmation(
+        `Already connected to ${peer ? peer.name : 'this device'}`,
+        'Reconnect and replace the current connection?',
+        'Reconnect',
+        true
+      );
+      if (!reconnect) return;
+    }
+    if (activePeer === sid) teardownConnection(null, true);
     if (pc) teardownConnection(null, true);
     pendingPeer = sid;
     setStatus('Requesting', 'busy');
@@ -682,8 +707,32 @@
             throw new Error('HTTPS required for disk streaming.');
           }
           const root = await navigator.storage.getDirectory();
+          let existing = [...receiveTransfers.values()].some(
+            item => item.id !== id && item.name === msg.name && item.status === 'complete'
+          );
+          try {
+            await root.getFileHandle(msg.name);
+            existing = true;
+          } catch (err) {
+            if (err.name !== 'NotFoundError') throw err;
+          }
+          if (existing) {
+            const overwrite = await requestConfirmation(
+              `A file named "${msg.name}" already exists`,
+              'Replace the existing local file with this incoming file?',
+              'Replace file',
+              true
+            );
+            if (!overwrite) {
+              transfer.status = 'stopped';
+              sendTransferControl('REJECT', id);
+              renderTransfers();
+              return;
+            }
+          }
           transfer.fileHandle = await root.getFileHandle(msg.name, { create: true });
           transfer.writable = await transfer.fileHandle.createWritable({ keepExistingData: false });
+          sendTransferControl('READY', id);
           for (const chunk of transfer.pending.splice(0)) {
             await transfer.writable.write({ type: 'write', position: chunk.offset, data: chunk.payload });
           }
@@ -706,6 +755,17 @@
         await discardReceiveTransfer(transfer);
         renderTransfers();
         log(`Stopped: ${transfer.name}`, 'error');
+      } else if (msg.type === 'READY' || msg.type === 'REJECT') {
+        const transfer = sendTransfers.get(String(msg.transferId));
+        if (!transfer || transfer.permissionResolved) return;
+        transfer.permissionResolved = true;
+        if (msg.type === 'READY') transfer.resolvePermission?.(true);
+        else {
+          transfer.cancelled = true;
+          transfer.status = 'stopped';
+          transfer.resolvePermission?.(false);
+          renderTransfers();
+        }
       }
       return;
     }
@@ -756,9 +816,16 @@
     const queue = stagedFiles.slice();
     const totalSize = queue.reduce((sum, file) => sum + file.size, 0);
     const fileLabel = queue.length === 1 ? 'file' : 'files';
+    const duplicateNames = describeDuplicates(queue);
+    const alreadySent = queue
+      .filter(file => [...sendTransfers.values()].some(transfer => transfer.fileKey === fileKey(file)));
+    const duplicateWarning = [
+      duplicateNames.length ? `Duplicate selections:\n${duplicateNames.join('\n')}` : '',
+      alreadySent.length ? `Already sent before:\n${alreadySent.map(file => file.name).join('\n')}` : '',
+    ].filter(Boolean).join('\n\n');
     const confirmed = await requestConfirmation(
       `Add ${queue.length} ${fileLabel} to the send queue?`,
-      `Total size: ${fmtMB(totalSize)}\n\nFiles will be transferred one after another.`,
+      `Total size: ${fmtMB(totalSize)}\n\n${duplicateWarning ? `${duplicateWarning}\n\n` : ''}Files will be transferred one after another.`,
       'Add to queue'
     );
     if (!confirmed) return;
@@ -767,7 +834,7 @@
 
     const transferQueue = queue.map(file => {
       const id = String(nextTransferId++);
-      const transfer = { id, direction: 'send', name: file.name, size: file.size, progress: 0, speed: 0, startedAt: 0, lastSampleTime: 0, lastSampleBytes: 0, lastRenderTime: 0, status: 'queued' };
+      const transfer = { id, direction: 'send', fileKey: fileKey(file), name: file.name, size: file.size, progress: 0, speed: 0, startedAt: 0, lastSampleTime: 0, lastSampleBytes: 0, lastRenderTime: 0, status: 'queued' };
       sendTransfers.set(id, transfer);
       return { file, id, transfer };
     });
@@ -783,9 +850,20 @@
       transfer.startedAt = performance.now();
       transfer.lastSampleTime = transfer.startedAt;
       transfer.lastRenderTime = 0;
+      transfer.permissionResolved = false;
+      transfer.permissionPromise = new Promise(resolve => { transfer.resolvePermission = resolve; });
       renderTransfers();
       const startMessage = JSON.stringify({ type: 'START', transferId: id, name: file.name, size: file.size });
       open.forEach(ch => { try { ch.send(startMessage); } catch {} });
+      const permitted = await Promise.race([
+        transfer.permissionPromise,
+        new Promise(resolve => setTimeout(() => resolve(false), 30000)),
+      ]);
+      if (!permitted || transfer.cancelled) {
+        transfer.status = 'stopped';
+        renderTransfers();
+        continue;
+      }
       let offset = 0, i = 0;
       const reader = file.stream().getReader();
 

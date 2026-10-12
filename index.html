@@ -178,12 +178,6 @@
             </button>
           </div>
         </div>
-        <div class="border-t border-border px-5 py-3">
-          <button onclick="disconnectPeer()" class="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
-            <i data-lucide="unplug" class="h-3.5 w-3.5"></i>
-            Disconnect
-          </button>
-        </div>
       </div>
 
       <div class="rounded-lg border border-border bg-card text-card-foreground shadow-sm">
@@ -217,6 +211,17 @@
           <p class="mb-2 mt-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">Log</p>
           <div id="eventLogs" class="min-h-[110px] max-h-[140px] space-y-1 overflow-y-auto rounded-md border border-border bg-background/50 p-3 font-mono text-[11px] leading-relaxed text-muted-foreground custom-scrollbar"></div>
         </div>
+      </div>
+
+      <div class="flex items-center justify-between rounded-lg border border-border bg-card px-5 py-3 text-card-foreground shadow-sm md:col-span-2">
+        <div>
+          <p class="text-xs font-medium">Connected to <span id="disconnectTargetName">device</span></p>
+          <p class="mt-0.5 text-[11px] text-muted-foreground">Disconnecting stops active transfers on both devices.</p>
+        </div>
+        <button onclick="disconnectPeer()" class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive/50 hover:bg-destructive/10 hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <i data-lucide="unplug" class="h-3.5 w-3.5"></i>
+          Disconnect
+        </button>
       </div>
     </section>
 

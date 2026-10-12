@@ -53,10 +53,13 @@ A currently-deployed temporary relay is baked in for instant testing:
 
 ## How discovery works
 
-1. Each device SHA-256-hashes its public IP → a per-network room id.
-2. Devices open one WebSocket to `wss://<worker>/room/<hash>` and join with their device name/type.
-3. The Durable Object broadcasts the roster; tapping a peer sends a connect request → accept → SDP/ICE flow over the same socket (~5 KB).
-4. 4 parallel unordered data channels stream the file in 64 KB chunks, written straight to OPFS (disk) with random-access offsets — RAM stays flat even for 10 GB+ files.
+1. Each device belongs to a **4-digit room code** (OTP-style, e.g. `4821`) — stable, persisted, and editable.
+2. Pair two ways:
+   - **QR**: scan the on-page QR with any phone camera — it opens `?room=<code>`, which auto-joins that room.
+   - **Code**: share the 4-digit code verbally; the other device taps the room chip and enters it.
+3. All devices in the same room see each other on any network (Wi-Fi, mobile data, hotel/library LANs — no IP-matching needed).
+4. Tapping a peer sends a connect request → accept → SDP/ICE flow over the WebSocket (~5 KB).
+5. 4 parallel unordered data channels stream the file in 64 KB chunks straight to OPFS (disk) — RAM stays flat even for 10 GB+ files.
 
 ## Testing locally against the tunnel
 

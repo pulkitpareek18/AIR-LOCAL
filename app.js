@@ -172,7 +172,8 @@
   function setRoom(room) {
     localStorage.setItem('airlocal.room', room);
     networkId = room;
-    document.getElementById('networkLabel').textContent = room;
+    const networkLabel = document.getElementById('networkLabel');
+    if (networkLabel) networkLabel.textContent = room;
     document.getElementById('selfRoomHint').textContent = room;
     renderQr();
     try { if (ws) ws.close(); } catch {} // reconnect into the new room
@@ -1213,7 +1214,8 @@
     qrPairToken = new URLSearchParams(location.search).get('pair');
     if (qrTargetSid === SESSION_ID) qrTargetSid = null;
     networkId = getRoom();
-    document.getElementById('networkLabel').textContent = networkId;
+    const networkLabel = document.getElementById('networkLabel');
+    if (networkLabel) networkLabel.textContent = networkId;
     document.getElementById('selfRoomHint').textContent = networkId;
     renderQr();
     dbg('room = ' + networkId);

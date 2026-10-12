@@ -247,6 +247,24 @@
     </div>
   </dialog>
 
+  <dialog id="confirmDialog" class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg">
+    <div class="flex flex-col space-y-2 p-6 text-center sm:text-left">
+      <div class="flex items-start gap-3">
+        <div id="confirmIcon" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
+          <i data-lucide="circle-help" class="h-4 w-4"></i>
+        </div>
+        <div class="min-w-0">
+          <h2 id="confirmTitle" class="text-base font-semibold leading-none tracking-tight">Confirm action</h2>
+          <p id="confirmDescription" class="mt-1.5 whitespace-pre-line text-sm text-muted-foreground"></p>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col-reverse gap-2 border-t border-border p-4 sm:flex-row sm:justify-end">
+      <button type="button" onclick="resolveConfirmation(false)" class="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">Cancel</button>
+      <button id="confirmActionButton" type="button" onclick="resolveConfirmation(true)" class="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">Confirm</button>
+    </div>
+  </dialog>
+
   <script src="app.js"></script>
 
 </body>

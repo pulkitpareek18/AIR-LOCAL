@@ -166,7 +166,8 @@
     }
     if (now - (transfer.lastRenderTime || 0) >= 50 || progress >= transfer.size) {
       transfer.lastRenderTime = now;
-      renderTransfers();
+      updateTransferCard(transfer);
+      updateActivitySpeed();
     }
   }
 
@@ -180,19 +181,37 @@
     const pct = transfer.size ? Math.min(100, Math.round((transfer.progress / transfer.size) * 100)) : 0;
     const tone = transfer.status === 'complete' ? 'bg-success' : transfer.status === 'error' ? 'bg-red-500' : 'bg-primary';
     const label = transfer.status === 'complete' ? 'Complete' : transfer.status === 'error' ? 'Failed' : transfer.status === 'queued' ? 'Queued' : `${pct}%`;
-    return `<div class="rounded-md border border-border bg-background/50 p-3" data-transfer-id="${transfer.id}">
+    const canCancel = transfer.status === 'active' || transfer.status === 'queued';
+    return `<div class="rounded-md border border-border bg-background/50 p-3" data-transfer-id="${transfer.id}" data-direction="${transfer.direction}">
       <div class="mb-2 flex items-center justify-between gap-3">
         <span class="min-w-0 truncate text-xs font-medium">${esc(transfer.name)}</span>
-        <span class="shrink-0 text-[10px] font-medium tabular-nums text-muted-foreground">${label}</span>
+        <span class="flex shrink-0 items-center gap-2">
+          <span class="transfer-label text-[10px] font-medium tabular-nums text-muted-foreground">${label}</span>
+          ${canCancel ? `<button type="button" onclick="cancelTransfer('${transfer.direction}', '${transfer.id}')" class="rounded px-1 text-[10px] text-muted-foreground hover:bg-destructive/10 hover:text-red-400">${transfer.status === 'active' ? 'Stop' : 'Remove'}</button>` : ''}
+        </span>
       </div>
       <div class="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
         <div class="transfer-progress h-full rounded-full ${tone}" style="width:${pct}%"></div>
       </div>
       <div class="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
         <span class="transfer-bytes tabular-nums">${fmtMB(transfer.progress)} / ${fmtMB(transfer.size)}</span>
-        <span class="tabular-nums">${transfer.status === 'active' ? `${fmtSpeed(transfer.speed)} · ETA ${formatETA((transfer.size - transfer.progress) / transfer.speed)}` : transfer.status === 'complete' ? 'Complete' : ''}</span>
+        <span class="transfer-metrics tabular-nums">${transfer.status === 'active' ? `${fmtSpeed(transfer.speed)} · ETA ${formatETA((transfer.size - transfer.progress) / transfer.speed)}` : transfer.status === 'complete' ? 'Complete' : ''}</span>
       </div>
     </div>`;
+  }
+  function updateTransferCard(transfer) {
+    const card = document.querySelector(`[data-transfer-id="${CSS.escape(transfer.id)}"][data-direction="${transfer.direction}"]`);
+    if (!card) return;
+    const pct = transfer.size ? Math.min(100, Math.round((transfer.progress / transfer.size) * 100)) : 0;
+    card.querySelector('.transfer-progress')?.style.setProperty('width', `${pct}%`);
+    const bytes = card.querySelector('.transfer-bytes');
+    const metrics = card.querySelector('.transfer-metrics');
+    const label = card.querySelector('.transfer-label');
+    if (bytes) bytes.textContent = `${fmtMB(transfer.progress)} / ${fmtMB(transfer.size)}`;
+    if (metrics) metrics.textContent = transfer.status === 'active'
+      ? `${fmtSpeed(transfer.speed)} · ETA ${formatETA((transfer.size - transfer.progress) / transfer.speed)}`
+      : transfer.status === 'complete' ? 'Complete' : transfer.status;
+    if (label) label.textContent = transfer.status === 'active' ? `${pct}%` : transfer.status;
   }
   function renderTransfers() {
     for (const [map, containerId, emptyId, countId] of [
@@ -214,6 +233,22 @@
     const transfer = map.get(id);
     if (!transfer) return;
     Object.assign(transfer, patch);
+    renderTransfers();
+  }
+  function updateActivitySpeed() {
+    const speed = [...sendTransfers.values(), ...receiveTransfers.values()]
+      .filter(transfer => transfer.status === 'active')
+      .reduce((total, transfer) => total + (transfer.speed || 0), 0);
+    const activitySpeed = document.getElementById('speedValue');
+    if (activitySpeed) activitySpeed.innerText = `${(speed / 1048576).toFixed(1)} MB/s`;
+  }
+  function cancelTransfer(direction, id) {
+    const map = direction === 'send' ? sendTransfers : receiveTransfers;
+    const transfer = map.get(id);
+    if (!transfer || !['active', 'queued'].includes(transfer.status)) return;
+    transfer.cancelled = true;
+    transfer.status = 'canceled';
+    if (direction === 'receive') discardReceiveTransfer(transfer);
     renderTransfers();
   }
 
@@ -626,7 +661,7 @@
         const id = String(msg.transferId);
         if (receiveTransfers.has(id)) return;
         const now = performance.now();
-        const transfer = { id, name: msg.name, size: msg.size, progress: 0, speed: 0, startedAt: now, lastSampleTime: now, lastSampleBytes: 0, lastRenderTime: 0, status: 'active', writable: null, fileHandle: null, pending: [], endReceived: false, initializing: true };
+        const transfer = { id, direction: 'receive', name: msg.name, size: msg.size, progress: 0, speed: 0, startedAt: now, lastSampleTime: now, lastSampleBytes: 0, lastRenderTime: 0, status: 'active', writable: null, fileHandle: null, pending: [], endReceived: false, initializing: true };
         receiveTransfers.set(id, transfer);
         renderTransfers();
         log(`Inbound: ${msg.name} (${fmtMB(msg.size)})`);
@@ -709,13 +744,14 @@
 
     const transferQueue = queue.map(file => {
       const id = String(nextTransferId++);
-      const transfer = { id, name: file.name, size: file.size, progress: 0, speed: 0, startedAt: 0, lastSampleTime: 0, lastSampleBytes: 0, lastRenderTime: 0, status: 'queued' };
+      const transfer = { id, direction: 'send', name: file.name, size: file.size, progress: 0, speed: 0, startedAt: 0, lastSampleTime: 0, lastSampleBytes: 0, lastRenderTime: 0, status: 'queued' };
       sendTransfers.set(id, transfer);
       return { file, id, transfer };
     });
     renderTransfers();
 
     for (const { file, id, transfer } of transferQueue) {
+      if (transfer.cancelled) continue;
       if (generation !== transferGeneration || !activePeer) {
         transmitRunning = false;
         return;
@@ -731,6 +767,10 @@
       const reader = file.stream().getReader();
 
       while (true) {
+        if (transfer.cancelled) {
+          await reader.cancel();
+          break;
+        }
         if (generation !== transferGeneration || !activePeer) {
           transmitRunning = false;
           return;
@@ -738,6 +778,7 @@
         const { done, value } = await reader.read();
         if (done) break;
         for (let s = 0; s < value.byteLength; s += CHUNK_SIZE) {
+          if (transfer.cancelled) break;
           if (generation !== transferGeneration || !activePeer) {
             await reader.cancel();
             transmitRunning = false;
@@ -773,6 +814,11 @@
               transmitRunning = false;
               return;
             }
+            if (transfer.cancelled) break;
+          }
+          if (transfer.cancelled) {
+            renderTransfers();
+            continue;
           }
           offset += len; i++;
           updateTransferTelemetry(sendTransfers, id, offset);
@@ -793,16 +839,24 @@
   }
 
   function renderStagedQueue() {
-    document.getElementById('stagedFilesList').innerHTML = stagedFiles.map(f => `
+    document.getElementById('stagedFilesList').innerHTML = stagedFiles.map((f, index) => `
       <div class="flex items-center justify-between rounded-md border border-border bg-background/50 px-3 py-2 text-xs">
         <span class="flex min-w-0 items-center gap-2">
           <i data-lucide="file" class="h-3.5 w-3.5 shrink-0 text-muted-foreground"></i>
           <span class="truncate font-medium">${esc(f.name)}</span>
         </span>
-        <span class="ml-2 shrink-0 text-muted-foreground tabular-nums">${fmtMB(f.size)}</span>
+        <span class="ml-2 flex shrink-0 items-center gap-2 text-muted-foreground">
+          <span class="tabular-nums">${fmtMB(f.size)}</span>
+          <button type="button" onclick="removeStagedFile(${index})" class="rounded px-1 text-[10px] hover:bg-destructive/10 hover:text-red-400" title="Remove from queue">Remove</button>
+        </span>
       </div>`).join('');
     lucide.createIcons();
     document.getElementById('stagedContainer').classList.toggle('hidden', stagedFiles.length === 0);
+  }
+  function removeStagedFile(index) {
+    if (index < 0 || index >= stagedFiles.length) return;
+    stagedFiles.splice(index, 1);
+    renderStagedQueue();
   }
 
   // ---------- UI wiring ----------
@@ -834,17 +888,7 @@
   function stageFiles(files) {
     if (!files.length) return;
     stagedFiles = [...stagedFiles, ...files];
-    document.getElementById('stagedContainer').classList.remove('hidden');
-    document.getElementById('stagedFilesList').innerHTML = stagedFiles.map(f => `
-      <div class="flex items-center justify-between rounded-md border border-border bg-background/50 px-3 py-2 text-xs">
-        <span class="flex min-w-0 items-center gap-2">
-          <i data-lucide="file" class="h-3.5 w-3.5 shrink-0 text-muted-foreground"></i>
-          <span class="truncate font-medium">${esc(f.name)}</span>
-        </span>
-        <span class="ml-2 shrink-0 text-muted-foreground tabular-nums">${fmtMB(f.size)}</span>
-      </div>`).join('');
-    lucide.createIcons();
-    document.getElementById('stagedContainer').classList.toggle('hidden', stagedFiles.length === 0);
+    renderStagedQueue();
   }
 
   // ---------- Boot ----------

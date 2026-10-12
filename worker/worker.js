@@ -67,8 +67,9 @@ export class Room {
           const peer = this.peers.get(msg.sid);
           peer.lastSeen = Date.now();
           ws.serializeAttachment({ sid: msg.sid, name: peer.name, kind: peer.kind, lastSeen: peer.lastSeen });
+          this.broadcastPeers();
         }
-        return; // app-level keep-alive; presence refresh happens via roster broadcast
+        return;
       case 'join': {
         const name = String(msg.name || 'Device').slice(0, 48);
         const kind = String(msg.kind || 'other').slice(0, 16);

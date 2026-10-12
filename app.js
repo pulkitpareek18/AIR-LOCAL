@@ -180,14 +180,14 @@
   function transferCard(transfer) {
     const pct = transfer.size ? Math.min(100, Math.round((transfer.progress / transfer.size) * 100)) : 0;
     const tone = transfer.status === 'complete' ? 'bg-success' : transfer.status === 'error' ? 'bg-red-500' : 'bg-primary';
-    const label = transfer.status === 'complete' ? 'Complete' : transfer.status === 'error' ? 'Failed' : transfer.status === 'queued' ? 'Queued' : `${pct}%`;
+    const label = transfer.status === 'complete' ? 'Complete' : transfer.status === 'error' ? 'Failed' : transfer.status === 'stopped' ? 'Stopped' : transfer.status === 'queued' ? 'Queued' : `${pct}%`;
     const canCancel = transfer.status === 'active' || transfer.status === 'queued';
     return `<div class="rounded-md border border-border bg-background/50 p-3" data-transfer-id="${transfer.id}" data-direction="${transfer.direction}">
       <div class="mb-2 flex items-center justify-between gap-3">
         <span class="min-w-0 truncate text-xs font-medium">${esc(transfer.name)}</span>
         <span class="flex shrink-0 items-center gap-2">
           <span class="transfer-label text-[10px] font-medium tabular-nums text-muted-foreground">${label}</span>
-          ${canCancel ? `<button type="button" onclick="cancelTransfer('${transfer.direction}', '${transfer.id}')" class="rounded px-1 text-[10px] text-muted-foreground hover:bg-destructive/10 hover:text-red-400">${transfer.status === 'active' ? 'Stop' : 'Remove'}</button>` : ''}
+          ${canCancel ? `<button type="button" onclick="cancelTransfer('${transfer.direction}', '${transfer.id}')" class="rounded px-1 text-[10px] text-muted-foreground hover:bg-destructive/10 hover:text-red-400">${transfer.status === 'active' ? 'Cancel' : 'Remove'}</button>` : ''}
         </span>
       </div>
       <div class="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
@@ -211,7 +211,7 @@
     if (metrics) metrics.textContent = transfer.status === 'active'
       ? `${fmtSpeed(transfer.speed)} · ETA ${formatETA((transfer.size - transfer.progress) / transfer.speed)}`
       : transfer.status === 'complete' ? 'Complete' : transfer.status;
-    if (label) label.textContent = transfer.status === 'active' ? `${pct}%` : transfer.status;
+    if (label) label.textContent = transfer.status === 'active' ? `${pct}%` : transfer.status === 'stopped' ? 'Stopped' : transfer.status;
   }
   function renderTransfers() {
     for (const [map, containerId, emptyId, countId] of [
@@ -246,8 +246,14 @@
     const map = direction === 'send' ? sendTransfers : receiveTransfers;
     const transfer = map.get(id);
     if (!transfer || !['active', 'queued'].includes(transfer.status)) return;
+    if (transfer.status === 'queued') {
+      transfer.cancelled = true;
+      map.delete(id);
+      renderTransfers();
+      return;
+    }
     transfer.cancelled = true;
-    transfer.status = 'canceled';
+    transfer.status = 'stopped';
     if (direction === 'send' && activePeer) {
       const cancelMessage = JSON.stringify({ type: 'CANCEL', transferId: id });
       channels.filter(ch => ch.readyState === 'open').forEach(ch => {
@@ -624,7 +630,7 @@
     }
     receiveTransfers.clear();
     for (const transfer of sendTransfers.values()) {
-      if (transfer.status === 'active' || transfer.status === 'queued') transfer.status = 'canceled';
+      if (transfer.status === 'active' || transfer.status === 'queued') transfer.status = 'stopped';
     }
     stagedFiles = [];
     renderStagedQueue();
@@ -696,10 +702,10 @@
       } else if (msg.type === 'CANCEL') {
         const transfer = receiveTransfers.get(String(msg.transferId));
         if (!transfer) return;
-        transfer.status = 'canceled';
+        transfer.status = 'stopped';
         await discardReceiveTransfer(transfer);
         renderTransfers();
-        log(`Canceled: ${transfer.name}`, 'error');
+        log(`Stopped: ${transfer.name}`, 'error');
       }
       return;
     }
@@ -827,7 +833,7 @@
             }
             try { ch.send(packet.buffer); }
             catch {
-              transfer.status = 'canceled';
+              transfer.status = 'stopped';
               transmitRunning = false;
               return;
             }
@@ -844,7 +850,7 @@
       if (transfer.cancelled) {
         const cancelMessage = JSON.stringify({ type: 'CANCEL', transferId: id });
         open.forEach(ch => { try { ch.send(cancelMessage); } catch {} });
-        transfer.status = 'canceled';
+        transfer.status = 'stopped';
         renderTransfers();
         continue;
       }

@@ -643,18 +643,9 @@
     const connection = pc;
     pc.onconnectionstatechange = () => {
       if (pc !== connection) return;
-      if (connection.connectionState === 'failed' || connection.connectionState === 'closed') {
-        clearTimeout(peerDisconnectTimer);
-        peerDisconnectTimer = null;
+      if (['failed', 'disconnected', 'closed'].includes(connection.connectionState)) {
+        notifyPeerDisconnect();
         teardownConnection('Link dropped');
-      } else if (connection.connectionState === 'disconnected') {
-        clearTimeout(peerDisconnectTimer);
-        peerDisconnectTimer = setTimeout(() => {
-          peerDisconnectTimer = null;
-          if (pc === connection && connection.connectionState === 'disconnected') {
-            teardownConnection('Link dropped');
-          }
-        }, 8000);
       } else if (connection.connectionState === 'connected') {
         clearTimeout(peerDisconnectTimer);
         peerDisconnectTimer = null;
@@ -770,8 +761,12 @@
     const peer = peers.get(activePeer);
     const confirmed = confirm(`Disconnect from ${peer ? peer.name : 'this device'}? Any active transfers will stop.`);
     if (!confirmed) return;
-    if (activePeer) signal(activePeer, { t: 'hangup' });
+    notifyPeerDisconnect();
     teardownConnection('Disconnected');
+  }
+
+  function notifyPeerDisconnect() {
+    if (activePeer) signal(activePeer, { t: 'hangup' });
   }
 
   function teardownConnection(reason, silent) {

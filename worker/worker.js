@@ -129,7 +129,9 @@ export class Room {
       }
     }
     const roster = [];
-    for (const [sid, p] of this.peers) roster.push({ sid, name: p.name, kind: p.kind });
+    for (const [sid, p] of this.peers) {
+      roster.push({ sid, name: p.name, kind: p.kind, lastSeen: p.lastSeen || now });
+    }
     const frame = JSON.stringify({ v: PROTO_VER, type: 'peers', peers: roster });
     const dead = [];
     for (const [sid, p] of this.peers) {

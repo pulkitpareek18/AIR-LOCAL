@@ -69,6 +69,7 @@
     .transfer-progress { transition: width .12s linear; }
     .platform-badge-icon svg { display: block; flex: 0 0 auto; }
     .platform-badge-icon .platform-icon-mac { transform: translateY(1px); }
+    .platform-badge-icon .platform-label-mac { transform: translateY(1px); }
     dialog { max-height: calc(100dvh - 2rem); overflow: auto; }
     button:disabled { cursor: not-allowed; opacity: .5; }
     @media (max-width: 640px) {

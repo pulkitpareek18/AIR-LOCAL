@@ -563,7 +563,7 @@
       <span class="peer-name w-full truncate text-xs font-medium">${esc(peer.name)}</span>
       <span class="platform-badge-icon inline-flex items-center gap-1.5 whitespace-nowrap text-[10px] leading-none text-muted-foreground" title="${esc(platform)}">
         ${platformIconFor(peer.kind)}
-        ${platform}
+        <span class="${peer.kind === 'mac' ? 'platform-label-mac' : ''}">${platform}</span>
       </span>
       <span class="-mt-1.5 text-[10px] font-medium uppercase tracking-wider ${connected ? 'text-success' : 'text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'}">${connected ? 'connected' : 'connect'}</span>`;
   }

@@ -72,7 +72,8 @@
       linux: '<svg viewBox="0 0 24 24" aria-hidden="true" class="h-4 w-4 fill-current"><path d="M12 2.5c-3.1 0-4.6 2.7-4.6 5.8 0 1.8-.8 2.8-1.8 4-.9 1-1.8 2.2-1.2 3.6.4 1 1.5 1.4 2.6 1.3-.2.9-.1 1.8.5 2.5.6.8 1.7.9 2.5.4.6 1 1.6 1.4 2.6 1.1.6-.2 1-.7 1.4-1.2.5.5 1 .9 1.7 1.1 1 .3 2-.2 2.4-1.2.9.1 1.8-.3 2.2-1.1.6-1.3-.2-2.4-1-3.4 1 .1 2.1-.2 2.4-1.2.5-1.4-1.1-2.6-1.5-3.6-1-1.1-1.5-2.1-1.5-3.7 0-2.9-1.7-4.4-3.8-4.4Zm-2 5.7a.7.7 0 1 1 1.4 0 .7.7 0 0 1-1.4 0Zm4.6 0a.7.7 0 1 1 1.4 0 .7.7 0 0 1-1.4 0ZM9 13.4c1.8 1 4.2 1 6 0-.3 1.5-1.4 2.3-3 2.3s-2.7-.8-3-2.3Z"/></svg>',
       other: '<svg viewBox="0 0 24 24" aria-hidden="true" class="h-4 w-4 fill-current"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 21h8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
     };
-    return icons[kind === 'mac' ? 'ios' : kind] || icons.other;
+    const icon = icons[kind === 'mac' ? 'ios' : kind] || icons.other;
+    return icon.replace('class="h-4 w-4', `class="platform-icon platform-icon-${kind} h-4 w-4`);
   }
   const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
   const randomName = () => `${ADJ[Math.floor(Math.random() * ADJ.length)]} ${PLATFORM_NAME[deviceKind]}`;

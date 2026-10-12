@@ -64,7 +64,15 @@
     return { ios: 'smartphone', android: 'smartphone', windows: 'monitor', mac: 'laptop', linux: 'hard-drive' }[kind] || 'monitor';
   }
   function platformIconFor(kind) {
-    return { ios: 'apple', android: 'smartphone', windows: 'monitor', mac: 'laptop', linux: 'terminal', other: 'hard-drive' }[kind] || 'monitor';
+    const icons = {
+      ios: '<svg viewBox="0 0 24 24" aria-hidden="true" class="h-3 w-3 fill-current"><path d="M16.7 12.8c0-2.1 1.7-3.1 1.8-3.2-1-.1-2.1-1.1-3.4-1.1-1.4-.1-2.7.8-3.4.8-.7 0-1.7-.8-2.8-.8-1.4 0-2.7.8-3.4 2.1-1.5 2.6-.4 6.5 1 8.6.7 1 1.5 2 2.6 2 1 0 1.4-.7 2.7-.7 1.3 0 1.7.7 2.7.7 1.1 0 1.8-1 2.5-2 .8-1.1 1.1-2.3 1.1-2.4-.1 0-2.1-.8-2.1-3.9ZM14.5 7.1c.6-.8 1-1.8.9-2.8-.9 0-2 .6-2.6 1.4-.6.7-1 1.7-.9 2.7 1 .1 2-.5 2.6-1.3Z"/></svg>',
+      mac: '<svg viewBox="0 0 24 24" aria-hidden="true" class="h-3 w-3 fill-current"><path d="M12 2.2a9.8 9.8 0 1 0 0 19.6 9.8 9.8 0 0 0 0-19.6Zm0 1.8a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-2.1 3.4h4.2v1.8H9.9V7.4Zm0 3.2h4.2v1.8H9.9v-1.8Zm0 3.2h4.2v1.8H9.9v-1.8Z"/></svg>',
+      windows: '<svg viewBox="0 0 24 24" aria-hidden="true" class="h-3 w-3 fill-current"><path d="m3 4.8 8-1.1v7.1H3V4.8Zm9.3-1.3L21 2.3v8.5h-8.7V3.5ZM3 12.8h8v7.5l-8-1.1v-6.4Zm9.3 0H21v8.9l-8.7-1.2v-7.7Z"/></svg>',
+      android: '<svg viewBox="0 0 24 24" aria-hidden="true" class="h-3 w-3 fill-current"><path d="M7.1 8.8h9.8v8.1a1 1 0 0 1-1 1h-.9v2.4a.9.9 0 1 1-1.8 0v-2.4h-2.4v2.4a.9.9 0 1 1-1.8 0v-2.4h-.9a1 1 0 0 1-1-1V8.8Zm-1.7.8a.9.9 0 0 1 .9.9v4.3a.9.9 0 1 1-1.8 0v-4.3a.9.9 0 0 1 .9-.9Zm13.2 0a.9.9 0 0 1 .9.9v4.3a.9.9 0 1 1-1.8 0v-4.3a.9.9 0 0 1 .9-.9ZM8.6 7.8a3.8 3.8 0 0 1 1.1-2.7L8.8 4a.4.4 0 1 1 .6-.6l1 1.1a3.8 3.8 0 0 1 3.2 0l1-1.1a.4.4 0 1 1 .6.6l-.9 1.1a3.8 3.8 0 0 1 1.1 2.7H8.6Zm2.1-2a.5.5 0 1 0 0 1 .5.5 0 0 0 0-1Zm2.6 0a.5.5 0 1 0 0 1 .5.5 0 0 0 0-1Z"/></svg>',
+      linux: '<svg viewBox="0 0 24 24" aria-hidden="true" class="h-3 w-3 fill-current"><path d="M12 2.5c-3.1 0-4.6 2.7-4.6 5.8 0 1.8-.8 2.8-1.8 4-.9 1-1.8 2.2-1.2 3.6.4 1 1.5 1.4 2.6 1.3-.2.9-.1 1.8.5 2.5.6.8 1.7.9 2.5.4.6 1 1.6 1.4 2.6 1.1.6-.2 1-.7 1.4-1.2.5.5 1 .9 1.7 1.1 1 .3 2-.2 2.4-1.2.9.1 1.8-.3 2.2-1.1.6-1.3-.2-2.4-1-3.4 1 .1 2.1-.2 2.4-1.2.5-1.4-.5-2.6-1.4-3.6-1-1.1-1.5-2.1-1.5-3.7 0-2.9-1.7-4.4-3.8-4.4Zm-2 5.7a.7.7 0 1 1 1.4 0 .7.7 0 0 1-1.4 0Zm4.6 0a.7.7 0 1 1 1.4 0 .7.7 0 0 1-1.4 0ZM9 13.4c1.8 1 4.2 1 6 0-.3 1.5-1.4 2.3-3 2.3s-2.7-.8-3-2.3Z"/></svg>',
+      other: '<svg viewBox="0 0 24 24" aria-hidden="true" class="h-3 w-3 fill-current"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 21h8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    };
+    return icons[kind] || icons.other;
   }
   const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
   const randomName = () => `${ADJ[Math.floor(Math.random() * ADJ.length)]} ${PLATFORM_NAME[deviceKind]}`;
@@ -553,7 +561,7 @@
       </div>
       <span class="peer-name w-full truncate text-xs font-medium">${esc(peer.name)}</span>
       <span class="flex items-center gap-1 text-[10px] text-muted-foreground" title="${esc(platform)}">
-        <i data-lucide="${platformIconFor(peer.kind)}" class="h-3 w-3"></i>
+        ${platformIconFor(peer.kind)}
         ${platform}
       </span>
       <span class="-mt-1.5 text-[10px] font-medium uppercase tracking-wider ${connected ? 'text-success' : 'text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'}">${connected ? 'connected' : 'connect'}</span>`;

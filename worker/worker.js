@@ -55,6 +55,8 @@ export class Room {
     if (!msg || msg.v !== PROTO_VER || typeof msg.sid !== 'string') return;
 
     switch (msg.type) {
+      case 'ping':
+        return; // app-level keep-alive; presence refresh happens via roster broadcast
       case 'join': {
         const name = String(msg.name || 'Device').slice(0, 48);
         const kind = String(msg.kind || 'other').slice(0, 16);

@@ -501,9 +501,13 @@
 
   // ---------- Peer roster ----------
   function syncPeers(roster) {
+    // The relay broadcasts the full room roster, including this session.
+    // Keep the nearby list strictly limited to other sessions.
+    peers.delete(SESSION_ID);
+    document.getElementById(`peer-${SESSION_ID}`)?.remove();
     const seen = new Set();
     for (const p of roster) {
-      if (p.sid === SESSION_ID) continue;
+      if (!p || p.sid === SESSION_ID) continue;
       seen.add(p.sid);
       if (!peers.has(p.sid)) {
         peers.set(p.sid, p);
@@ -543,6 +547,7 @@
   }
 
   function renderPeer(peer) {
+    if (!peer || peer.sid === SESSION_ID) return;
     const btn = document.createElement('button');
     btn.id = `peer-${peer.sid}`;
     btn.className = 'group flex animate-slide-up flex-col items-center gap-2.5 rounded-md border border-border bg-background/50 p-4 text-center transition-colors hover:border-muted-foreground/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';

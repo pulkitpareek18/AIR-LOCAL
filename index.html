@@ -25,12 +25,13 @@
             foreground: 'hsl(0 0% 98%)',
             primary: { DEFAULT: 'hsl(0 0% 98%)', foreground: 'hsl(240 5.9% 10%)' },
             secondary: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(0 0% 98%)' },
-            destructive: { DEFAULT: 'hsl(0 72.2% 50.6%)', foreground: 'hsl(0 0% 98%)' },
+            destructive: { DEFAULT: 'hsl(0 38% 43%)', foreground: 'hsl(0 0% 98%)' },
             muted: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(240 5% 64.9%)' },
             accent: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(0 0% 98%)' },
             card: { DEFAULT: 'hsl(240 10% 3.9%)', foreground: 'hsl(0 0% 98%)' },
             popover: { DEFAULT: 'hsl(240 10% 3.9%)', foreground: 'hsl(0 0% 98%)' },
-            success: 'hsl(142.1 70.6% 45.3%)',
+            success: 'hsl(142 32% 40%)',
+            warning: 'hsl(38 38% 45%)',
           },
           borderRadius: { lg: '0.5rem', md: 'calc(0.5rem - 2px)', sm: 'calc(0.5rem - 4px)' },
           fontFamily: {
@@ -67,11 +68,19 @@
         <span class="text-sm font-semibold tracking-tight">AirLocal</span>
       </div>
       <div class="flex items-center gap-2">
+        <button onclick="toggleSettings()" aria-label="Open settings" title="Settings" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <i data-lucide="settings-2" class="h-4 w-4"></i>
+        </button>
+        <a href="https://github.com/pulkitpareek18/AIR-LOCAL" target="_blank" rel="noopener noreferrer" aria-label="View AirLocal on GitHub" title="View source on GitHub" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="h-4 w-4 fill-current">
+            <path d="M12 .7a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.8.1-.8.1-.8 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.4-5.5-6a4.7 4.7 0 0 1 1.2-3.3c-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2a4.7 4.7 0 0 1 1.2 3.3c0 4.6-2.8 5.7-5.5 6 .4.3.8 1 .8 2v2.9c0 .3.2.7.8.6A12 12 0 0 0 12 .7Z"/>
+          </svg>
+        </a>
         <button onclick="editRoom()" title="Change room code" class="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 font-mono text-sm font-semibold tabular-nums tracking-widest transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
           <i data-lucide="hash" class="h-3 w-3 text-muted-foreground"></i>
           <span id="networkLabel">····</span>
         </button>
-        <div class="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium">
+        <div id="connectionBadge" class="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium" aria-live="polite">
           <span class="relative flex h-2 w-2">
             <span id="statusPing" class="absolute inline-flex h-full w-full rounded-full bg-zinc-500 opacity-75 animate-ping"></span>
             <span id="statusDot" class="relative inline-flex h-2 w-2 rounded-full bg-zinc-500"></span>
@@ -83,6 +92,34 @@
   </header>
 
   <main class="container flex-1 flex flex-col gap-4 py-6">
+    <div id="reconnectBanner" class="hidden items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm" role="status">
+      <div class="flex min-w-0 items-start gap-2.5">
+        <i data-lucide="wifi-off" class="mt-0.5 h-4 w-4 shrink-0 text-warning"></i>
+        <div class="min-w-0">
+          <p class="font-medium">Connection lost</p>
+          <p class="mt-0.5 text-xs text-muted-foreground">The active transfer was canceled. Your remaining queued files are still here.</p>
+        </div>
+      </div>
+      <button onclick="retryConnection()" class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+        <i data-lucide="refresh-cw" class="h-3.5 w-3.5"></i> Reconnect
+      </button>
+    </div>
+    <section id="onboardingCard" class="rounded-lg border border-border bg-card p-5 shadow-sm">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm font-semibold">Send files directly between your devices</p>
+          <p class="mt-1 text-xs text-muted-foreground">No uploads, accounts, or file storage on a server.</p>
+        </div>
+        <button onclick="dismissOnboarding()" aria-label="Dismiss introduction" class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
+      </div>
+      <div class="mt-4 grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
+        <div class="flex gap-2"><span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-foreground">1</span><span>Open AirLocal on both devices.</span></div>
+        <div class="flex gap-2"><span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-foreground">2</span><span>Scan the QR code or use the room code.</span></div>
+        <div class="flex gap-2"><span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-foreground">3</span><span>Choose files and send them directly.</span></div>
+      </div>
+    </section>
 
     <!-- ── Identity + pair card ─────────────────────────── -->
     <section class="rounded-lg border border-border bg-card text-card-foreground shadow-sm">
@@ -91,7 +128,7 @@
           <i data-lucide="qr-code" class="h-4 w-4 text-muted-foreground"></i>
           <h3 class="text-sm font-semibold leading-none tracking-tight">This device</h3>
         </div>
-        <span id="discoveryState" class="text-xs font-medium text-amber-500">connecting</span>
+        <span id="discoveryState" class="text-xs font-medium text-warning">connecting</span>
       </div>
       <div class="flex flex-col items-center gap-5 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-3.5 min-w-0">
@@ -137,12 +174,12 @@
         <span id="peerCount" class="inline-flex items-center rounded-full border border-border bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">0 nearby</span>
       </div>
       <div class="p-5">
-        <div id="emptyState" class="flex flex-col items-center justify-center rounded-md border border-dashed border-border py-12 text-center">
+        <div id="emptyState" class="flex flex-col items-center justify-center rounded-md border border-dashed border-border py-12 text-center" aria-live="polite">
           <div class="flex h-12 w-12 items-center justify-center rounded-full bg-secondary ring-pulse">
             <i data-lucide="loader-circle" class="h-5 w-5 animate-spin text-muted-foreground"></i>
           </div>
-          <p class="mt-4 text-sm font-medium">Looking for devices…</p>
-          <p class="mt-1 max-w-[280px] text-xs text-muted-foreground">Scan this device's QR code, or open AirLocal on another device and enter this room's 4-digit code.</p>
+          <p id="emptyStateTitle" class="mt-4 text-sm font-medium">Looking for devices…</p>
+          <p id="emptyStateDescription" class="mt-1 max-w-[280px] text-xs text-muted-foreground">Scan this device's QR code, or open AirLocal on another device and enter this room's 4-digit code.</p>
         </div>
         <div id="peerGrid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"></div>
       </div>
@@ -166,16 +203,24 @@
               <i data-lucide="file-up" class="h-4 w-4"></i>
             </div>
             <p class="mt-3 text-sm font-medium">Choose files or drop them here</p>
-            <p class="mt-1 text-xs text-muted-foreground">Streamed device-to-device — never uploaded</p>
+            <p class="mt-1 text-xs text-muted-foreground">Encrypted device-to-device transfer — never uploaded</p>
           </div>
 
           <div id="stagedContainer" class="mt-4 hidden">
-            <p class="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Queue</p>
+            <div class="mb-2 flex items-center justify-between">
+              <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Send queue</p>
+              <span id="queueSummary" class="text-[10px] tabular-nums text-muted-foreground">0 files · 0 MB</span>
+            </div>
             <div id="stagedFilesList" class="mb-3 max-h-32 space-y-1.5 overflow-y-auto custom-scrollbar"></div>
-            <button id="sendBtn" onclick="transmitQueue()" class="inline-flex h-9 w-full items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
-              <i data-lucide="zap" class="h-3.5 w-3.5 fill-current"></i>
-              <span id="sendBtnLabel">Send to <span id="sendTargetName">device</span></span>
-            </button>
+            <div class="flex gap-2">
+              <button id="sendBtn" onclick="transmitQueue()" class="inline-flex h-9 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
+                <i data-lucide="zap" class="h-3.5 w-3.5 fill-current"></i>
+                <span id="sendBtnLabel">Send to <span id="sendTargetName">device</span></span>
+              </button>
+              <button id="clearQueueBtn" onclick="clearStagedQueue()" class="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" title="Clear send queue">
+                <i data-lucide="trash-2" class="h-3.5 w-3.5"></i><span class="hidden sm:inline">Clear</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -196,7 +241,7 @@
                 <span id="sentCount" class="text-[10px] tabular-nums text-muted-foreground">0</span>
               </div>
               <div id="sentTransfers" class="space-y-2"></div>
-              <p id="sentEmpty" class="rounded-md border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">Nothing sent yet</p>
+              <p id="sentEmpty" class="rounded-md border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">Completed and active sent transfers will appear here.</p>
             </div>
             <div>
               <div class="mb-2 flex items-center justify-between">
@@ -204,12 +249,12 @@
                 <span id="receivedCount" class="text-[10px] tabular-nums text-muted-foreground">0</span>
               </div>
               <div id="receivedTransfers" class="space-y-2"></div>
-              <p id="receivedEmpty" class="rounded-md border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">Nothing received yet</p>
+              <p id="receivedEmpty" class="rounded-md border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">Received files will appear here.</p>
             </div>
           </div>
 
           <p class="mb-2 mt-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">Log</p>
-          <div id="eventLogs" class="min-h-[110px] max-h-[140px] space-y-1 overflow-y-auto rounded-md border border-border bg-background/50 p-3 font-mono text-[11px] leading-relaxed text-muted-foreground custom-scrollbar"></div>
+          <div id="eventLogs" class="min-h-[110px] max-h-[140px] space-y-1 overflow-y-auto rounded-md border border-border bg-background/50 p-3 font-mono text-[11px] leading-relaxed text-muted-foreground custom-scrollbar" aria-live="polite"></div>
         </div>
       </div>
 
@@ -218,7 +263,7 @@
           <p class="text-xs font-medium">Connected to <span id="disconnectTargetName">device</span></p>
           <p class="mt-0.5 text-[11px] text-muted-foreground">Disconnecting stops active transfers on both devices.</p>
         </div>
-        <button onclick="disconnectPeer()" class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive/50 hover:bg-destructive/10 hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+        <button onclick="disconnectPeer()" class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
           <i data-lucide="unplug" class="h-3.5 w-3.5"></i>
           Disconnect
         </button>
@@ -227,6 +272,8 @@
 
     <footer class="mt-auto pb-2 pt-4 text-center text-xs text-muted-foreground">
       <p>End-to-end device-to-device — files never touch a server.</p>
+      <p class="mt-1">Made in India <span aria-label="Indian flag" role="img">🇮🇳</span> · Built for India, by India</p>
+      <p class="mt-1 text-foreground">Pulkit Pareek</p>
     </footer>
 
     <!-- mobile diagnostic overlay: triple-tap the header to toggle -->
@@ -269,6 +316,53 @@
       <button id="confirmActionButton" type="button" onclick="resolveConfirmation(true)" class="inline-flex h-9 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:flex-none sm:px-4">Confirm</button>
     </div>
   </dialog>
+
+  <dialog id="queueNoticeDialog" class="fixed left-1/2 top-1/2 z-[60] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg">
+    <div class="flex flex-col space-y-2 p-6 text-center sm:text-left">
+      <div class="flex items-start gap-3">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning">
+          <i data-lucide="triangle-alert" class="h-4 w-4"></i>
+        </div>
+        <div class="min-w-0">
+          <h2 id="queueNoticeTitle" class="text-base font-semibold leading-none tracking-tight">Already added to queue</h2>
+          <p id="queueNoticeDescription" class="mt-1.5 whitespace-pre-line text-sm text-muted-foreground"></p>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-row gap-2 border-t border-border p-4 sm:justify-end">
+      <button type="button" onclick="closeQueueNotice()" class="inline-flex h-9 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:flex-none">OK</button>
+    </div>
+  </dialog>
+
+  <dialog id="settingsDialog" class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg">
+    <div class="flex items-start justify-between gap-4 border-b border-border p-5">
+      <div>
+        <h2 class="text-base font-semibold">Settings</h2>
+        <p class="mt-1 text-xs text-muted-foreground">Manage your AirLocal experience.</p>
+      </div>
+      <button onclick="closeSettings()" aria-label="Close settings" class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"><i data-lucide="x" class="h-4 w-4"></i></button>
+    </div>
+    <div class="space-y-2 p-5">
+      <button onclick="renameSelf(); closeSettings()" class="flex w-full items-center gap-3 rounded-md border border-border px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"><i data-lucide="pencil" class="h-4 w-4 text-muted-foreground"></i><span><span class="block font-medium">Rename this device</span><span class="text-xs text-muted-foreground">Choose the name other devices see.</span></span></button>
+      <button onclick="editRoom(); closeSettings()" class="flex w-full items-center gap-3 rounded-md border border-border px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"><i data-lucide="hash" class="h-4 w-4 text-muted-foreground"></i><span><span class="block font-medium">Change room code</span><span class="text-xs text-muted-foreground">Use the same four-digit code on another device.</span></span></button>
+      <button onclick="clearTransferHistory(); closeSettings()" class="flex w-full items-center gap-3 rounded-md border border-border px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"><i data-lucide="broom" class="h-4 w-4 text-muted-foreground"></i><span><span class="block font-medium">Clear transfer history</span><span class="text-xs text-muted-foreground">Remove completed and stopped activity cards.</span></span></button>
+    </div>
+    <div class="border-t border-border px-5 py-4 text-xs leading-relaxed text-muted-foreground">Files are transferred directly between your devices. AirLocal does not upload, store, or inspect your files. The relay only helps devices find and connect to each other.</div>
+  </dialog>
+
+  <dialog id="inputDialog" class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg">
+    <div class="p-5">
+      <h2 id="inputTitle" class="text-base font-semibold">Edit value</h2>
+      <p id="inputDescription" class="mt-1 text-xs text-muted-foreground"></p>
+      <input id="inputValue" class="mt-4 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring" autocomplete="off">
+    </div>
+    <div class="flex flex-row gap-2 border-t border-border p-4 sm:justify-end">
+      <button type="button" onclick="resolveInput(null)" class="inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:flex-none">Cancel</button>
+      <button type="button" onclick="resolveInput(document.getElementById('inputValue').value)" class="inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:flex-none">Save</button>
+    </div>
+  </dialog>
+
+  <div id="toastRegion" class="pointer-events-none fixed inset-x-4 bottom-4 z-[70] flex flex-col items-stretch gap-2 sm:left-auto sm:right-4 sm:inset-x-auto sm:w-80" aria-live="polite" aria-atomic="true"></div>
 
   <script src="app.js"></script>
 

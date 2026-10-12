@@ -32,6 +32,7 @@
   const peers = new Map();          // sid -> {sid, name, kind}
   let pc = null;
   let channels = [];
+  let controlChannel = null;
   let activePeer = null;
   let pendingPeer = null;
   let pendingIncoming = null;       // { from, name }
@@ -154,7 +155,7 @@
   }
   function updateTransferTelemetry(map, id, progress) {
     const transfer = map.get(id);
-    if (!transfer) return;
+    if (!transfer || transfer.status !== 'active') return;
     const now = performance.now();
     const elapsed = (now - transfer.lastSampleTime) / 1000;
     transfer.progress = progress;
@@ -202,6 +203,22 @@
   function filePath(file) {
     return file.webkitRelativePath || file.name;
   }
+  function showQueueDuplicateAlert(paths) {
+    const dialog = document.getElementById('queueNoticeDialog');
+    if (!dialog) return;
+    const count = paths.length;
+    document.getElementById('queueNoticeTitle').textContent =
+      count === 1 ? 'Already added to queue' : 'Files already added to queue';
+    document.getElementById('queueNoticeDescription').textContent =
+      paths.join('\n');
+    if (dialog.open) dialog.close();
+    dialog.showModal();
+    document.querySelector('#queueNoticeDialog button')?.focus();
+  }
+  function closeQueueNotice() {
+    const dialog = document.getElementById('queueNoticeDialog');
+    if (dialog?.open) dialog.close();
+  }
   function updateTransferCard(transfer) {
     const card = document.querySelector(`[data-transfer-id="${CSS.escape(transfer.id)}"][data-direction="${transfer.direction}"]`);
     if (!card) return;
@@ -247,6 +264,11 @@
   }
   function sendTransferControl(type, transferId) {
     const message = JSON.stringify({ type, transferId });
+    const control = controlChannel?.readyState === 'open' ? controlChannel : null;
+    if (control) {
+      try { control.send(message); } catch {}
+      return;
+    }
     channels.filter(ch => ch.readyState === 'open').forEach(ch => {
       try { ch.send(message); } catch {}
     });
@@ -268,7 +290,10 @@
     if (direction === 'send' && activePeer) {
       sendTransferControl('CANCEL', id);
     }
-    if (direction === 'receive') discardReceiveTransfer(transfer);
+    if (direction === 'receive') {
+      sendTransferControl('CANCEL', id);
+      discardReceiveTransfer(transfer);
+    }
     renderTransfers();
   }
 
@@ -458,19 +483,28 @@
   function buildPeerConnection(initiator) {
     pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     channels = [];
+    controlChannel = null;
     if (initiator) {
+      controlChannel = pc.createDataChannel('control', { ordered: true });
+      controlChannel.binaryType = 'arraybuffer';
+      wireChannel(controlChannel);
       for (let i = 0; i < NUM_CHANNELS; i++) {
         const ch = pc.createDataChannel(`ch-${i}`, { ordered: false });
         ch.binaryType = 'arraybuffer';
-        wireChannel(ch, i);
+        wireChannel(ch);
         channels.push(ch);
       }
     } else {
       pc.ondatachannel = e => {
         const ch = e.channel;
         ch.binaryType = 'arraybuffer';
-        wireChannel(ch, channels.length);
-        channels.push(ch);
+        if (ch.label === 'control') {
+          controlChannel = ch;
+          wireChannel(ch);
+        } else {
+          wireChannel(ch);
+          channels.push(ch);
+        }
       };
     }
     pc.onicecandidate = e => {
@@ -489,7 +523,7 @@
     };
   }
 
-  function wireChannel(ch, idx) {
+  function wireChannel(ch) {
     ch.onopen = () => {
       ch.bufferedAmountLowThreshold = BUFFER_LOW;
       if (!activePeer && pendingPeer) {
@@ -641,7 +675,7 @@
     clearTimeout(peerDisconnectTimer);
     peerDisconnectTimer = null;
     if (pc) { try { pc.close(); } catch {} }
-    pc = null; channels = []; activePeer = null;
+    pc = null; channels = []; controlChannel = null; activePeer = null;
     refreshPeerUI();
     for (const transfer of receiveTransfers.values()) {
       discardReceiveTransfer(transfer);
@@ -719,7 +753,20 @@
         transfer.endReceived = true;
         if (transfer.writable && !transfer.initializing) await finishIncomingTransfer(transfer);
       } else if (msg.type === 'CANCEL') {
-        const transfer = receiveTransfers.get(String(msg.transferId));
+        const id = String(msg.transferId);
+        const transfer = receiveTransfers.get(id);
+        const sendingTransfer = sendTransfers.get(id);
+        if (sendingTransfer && ['active', 'queued'].includes(sendingTransfer.status)) {
+          sendingTransfer.cancelled = true;
+          sendingTransfer.cancelledRemotely = true;
+          sendingTransfer.status = 'stopped';
+          sendingTransfer.permissionResolved = true;
+          sendingTransfer.resolvePermission?.(false);
+          try { await sendingTransfer.reader?.cancel(); } catch {}
+          renderTransfers();
+          log(`Stopped by receiver: ${sendingTransfer.name}`, 'error');
+          return;
+        }
         if (!transfer) return;
         transfer.status = 'stopped';
         await discardReceiveTransfer(transfer);
@@ -829,6 +876,7 @@
       }
       let offset = 0, i = 0;
       const reader = file.stream().getReader();
+      transfer.reader = reader;
 
       while (true) {
         if (transfer.cancelled) {
@@ -889,12 +937,16 @@
         }
       }
       if (transfer.cancelled) {
-        const cancelMessage = JSON.stringify({ type: 'CANCEL', transferId: id });
-        open.forEach(ch => { try { ch.send(cancelMessage); } catch {} });
+        if (!transfer.cancelledRemotely) {
+          const cancelMessage = JSON.stringify({ type: 'CANCEL', transferId: id });
+          open.forEach(ch => { try { ch.send(cancelMessage); } catch {} });
+        }
         transfer.status = 'stopped';
+        transfer.reader = null;
         renderTransfers();
         continue;
       }
+      transfer.reader = null;
       const endMessage = JSON.stringify({ type: 'END', transferId: id });
       open.forEach(ch => { try { ch.send(endMessage); } catch {} });
       updateTransfer(sendTransfers, id, { progress: file.size, status: 'complete' });
@@ -960,10 +1012,11 @@
     if (!files.length) return;
     const queuedPaths = new Set(stagedFiles.map(filePath));
     const additions = [];
+    const duplicates = [];
     for (const file of files) {
       const path = filePath(file);
       if (queuedPaths.has(path)) {
-        log(`Already added to send queue: ${path}`, 'error');
+        duplicates.push(path);
         continue;
       }
       queuedPaths.add(path);
@@ -971,6 +1024,11 @@
     }
     stagedFiles = [...stagedFiles, ...additions];
     renderStagedQueue();
+    if (duplicates.length) {
+      const uniqueDuplicates = [...new Set(duplicates)];
+      uniqueDuplicates.forEach(path => log(`Already added to send queue: ${path}`, 'error'));
+      showQueueDuplicateAlert(uniqueDuplicates);
+    }
   }
 
   // ---------- Boot ----------

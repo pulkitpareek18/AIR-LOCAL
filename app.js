@@ -421,6 +421,7 @@
         sec.classList.remove('hidden');
         sec.classList.add('grid');
         document.getElementById('sendTargetName').innerText = p ? p.name : 'device';
+        document.getElementById('disconnectTargetName').innerText = p ? p.name : 'device';
         if (stagedFiles.length) renderStagedQueue();
         log(`Secure wire open with ${p ? p.name : 'device'}`, 'success');
         sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

@@ -2,3 +2,5 @@ node_modules/
 .vercel
 .freebuff/
 .DS_Store
+.wrangler/
+.dev.vars

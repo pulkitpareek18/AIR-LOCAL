@@ -145,6 +145,27 @@
   }
 
   const fmtMB = b => `${(b / 1048576).toFixed(1)} MB`;
+  const fmtSpeed = bps => bps > 0 ? `${(bps / 1048576).toFixed(1)} MB/s` : '—';
+  function formatETA(seconds) {
+    if (!Number.isFinite(seconds) || seconds < 0) return '—';
+    const total = Math.ceil(seconds);
+    if (total < 60) return `${total}s`;
+    return `${Math.floor(total / 60)}m ${String(total % 60).padStart(2, '0')}s`;
+  }
+  function updateTransferTelemetry(map, id, progress) {
+    const transfer = map.get(id);
+    if (!transfer) return;
+    const now = performance.now();
+    transfer.progress = progress;
+    if (now - transfer.lastSampleTime >= 250) {
+      const elapsed = (now - transfer.lastSampleTime) / 1000;
+      const instantSpeed = (progress - transfer.lastSampleBytes) / elapsed;
+      transfer.speed = transfer.speed ? transfer.speed * 0.7 + instantSpeed * 0.3 : instantSpeed;
+      transfer.lastSampleTime = now;
+      transfer.lastSampleBytes = progress;
+    }
+    renderTransfers();
+  }
   function transferCard(transfer) {
     const pct = transfer.size ? Math.min(100, Math.round((transfer.progress / transfer.size) * 100)) : 0;
     const tone = transfer.status === 'complete' ? 'bg-success' : transfer.status === 'error' ? 'bg-red-500' : 'bg-primary';
@@ -159,7 +180,7 @@
       </div>
       <div class="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
         <span class="transfer-bytes tabular-nums">${fmtMB(transfer.progress)} / ${fmtMB(transfer.size)}</span>
-        <span>${transfer.status === 'active' ? 'Transferring' : transfer.status === 'complete' ? 'Saved locally' : ''}</span>
+        <span class="tabular-nums">${transfer.status === 'active' ? `${fmtSpeed(transfer.speed)} · ETA ${formatETA((transfer.size - transfer.progress) / transfer.speed)}` : transfer.status === 'complete' ? 'Complete' : ''}</span>
       </div>
     </div>`;
   }
@@ -588,7 +609,8 @@
       if (msg.type === 'START') {
         const id = String(msg.transferId);
         if (receiveTransfers.has(id)) return;
-        const transfer = { id, name: msg.name, size: msg.size, progress: 0, status: 'active', writable: null, fileHandle: null, pending: [], endReceived: false, initializing: true };
+        const now = performance.now();
+        const transfer = { id, name: msg.name, size: msg.size, progress: 0, speed: 0, lastSampleTime: now, lastSampleBytes: 0, status: 'active', writable: null, fileHandle: null, pending: [], endReceived: false, initializing: true };
         receiveTransfers.set(id, transfer);
         renderTransfers();
         log(`Inbound: ${msg.name} (${fmtMB(msg.size)})`);
@@ -628,8 +650,7 @@
     } else {
       transfer.pending.push({ offset, payload });
     }
-    transfer.progress += payload.byteLength;
-    renderTransfers();
+    updateTransferTelemetry(receiveTransfers, id, transfer.progress + payload.byteLength);
   }
 
   async function finishIncomingTransfer(transfer) {
@@ -671,7 +692,7 @@
 
     const transferQueue = queue.map(file => {
       const id = String(nextTransferId++);
-      const transfer = { id, name: file.name, size: file.size, progress: 0, status: 'queued' };
+      const transfer = { id, name: file.name, size: file.size, progress: 0, speed: 0, lastSampleTime: 0, lastSampleBytes: 0, status: 'queued' };
       sendTransfers.set(id, transfer);
       return { file, id, transfer };
     });
@@ -683,6 +704,7 @@
         return;
       }
       transfer.status = 'active';
+      transfer.lastSampleTime = performance.now();
       renderTransfers();
       const startMessage = JSON.stringify({ type: 'START', transferId: id, name: file.name, size: file.size });
       open.forEach(ch => { try { ch.send(startMessage); } catch {} });
@@ -735,7 +757,7 @@
           }
           offset += len; i++;
         }
-        updateTransfer(sendTransfers, id, { progress: offset });
+        updateTransferTelemetry(sendTransfers, id, offset);
       }
       const endMessage = JSON.stringify({ type: 'END', transferId: id });
       open.forEach(ch => { try { ch.send(endMessage); } catch {} });

@@ -248,6 +248,12 @@
     if (!transfer || !['active', 'queued'].includes(transfer.status)) return;
     transfer.cancelled = true;
     transfer.status = 'canceled';
+    if (direction === 'send' && activePeer) {
+      const cancelMessage = JSON.stringify({ type: 'CANCEL', transferId: id });
+      channels.filter(ch => ch.readyState === 'open').forEach(ch => {
+        try { ch.send(cancelMessage); } catch {}
+      });
+    }
     if (direction === 'receive') discardReceiveTransfer(transfer);
     renderTransfers();
   }
@@ -687,6 +693,13 @@
         if (!transfer) return;
         transfer.endReceived = true;
         if (transfer.writable && !transfer.initializing) await finishIncomingTransfer(transfer);
+      } else if (msg.type === 'CANCEL') {
+        const transfer = receiveTransfers.get(String(msg.transferId));
+        if (!transfer) return;
+        transfer.status = 'canceled';
+        await discardReceiveTransfer(transfer);
+        renderTransfers();
+        log(`Canceled: ${transfer.name}`, 'error');
       }
       return;
     }
@@ -695,18 +708,22 @@
     const offset = Number(view.getBigUint64(4, true));
     const payload = data.slice(12);
     const transfer = receiveTransfers.get(id);
-    if (!transfer) return;
+    if (!transfer || transfer.status !== 'active') return;
     if (transfer.writable) {
       await transfer.writable.write({ type: 'write', position: offset, data: payload });
     } else {
       transfer.pending.push({ offset, payload });
     }
     updateTransferTelemetry(receiveTransfers, id, transfer.progress + payload.byteLength);
+    if (transfer.endReceived && transfer.progress === transfer.size && !transfer.initializing) {
+      await finishIncomingTransfer(transfer);
+    }
   }
 
   async function finishIncomingTransfer(transfer) {
     if (receiveTransfers.get(transfer.id) !== transfer) return;
     if (!transfer.writable || transfer.status === 'complete') return;
+    if (transfer.progress !== transfer.size) return;
     await transfer.writable.close();
     transfer.writable = null;
     const file = await transfer.fileHandle.getFile();
@@ -818,11 +835,18 @@
           }
           if (transfer.cancelled) {
             renderTransfers();
-            continue;
+            break;
           }
           offset += len; i++;
           updateTransferTelemetry(sendTransfers, id, offset);
         }
+      }
+      if (transfer.cancelled) {
+        const cancelMessage = JSON.stringify({ type: 'CANCEL', transferId: id });
+        open.forEach(ch => { try { ch.send(cancelMessage); } catch {} });
+        transfer.status = 'canceled';
+        renderTransfers();
+        continue;
       }
       const endMessage = JSON.stringify({ type: 'END', transferId: id });
       open.forEach(ch => { try { ch.send(endMessage); } catch {} });

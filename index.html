@@ -869,9 +869,13 @@
   async function transmitQueue() {
     const open = channels.filter(c => c.readyState === 'open');
     if (transmitRunning || !open.length || !stagedFiles.length) return;
+    const queue = stagedFiles.slice();
+    const totalSize = queue.reduce((sum, file) => sum + file.size, 0);
+    const fileLabel = queue.length === 1 ? 'file' : 'files';
+    const confirmed = confirm(`Add ${queue.length} ${fileLabel} to the send queue?\n\nTotal size: ${fmtMB(totalSize)}\n\nFiles will be transferred one after another.`);
+    if (!confirmed) return;
     transmitRunning = true;
 
-    const queue = stagedFiles.slice();
     const transferQueue = queue.map(file => {
       const id = String(nextTransferId++);
       const transfer = { id, name: file.name, size: file.size, progress: 0, status: 'queued' };

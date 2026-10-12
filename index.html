@@ -424,10 +424,26 @@
     // on-screen debug for mobile (no devtools): triple-tap the header to peek
     window.__dbg = window.__dbg || [];
     window.__dbg.push(new Date().toISOString().slice(11,19) + ' ' + msg);
-    if (window.__dbg.length > 12) window.__dbg.shift();
+    if (window.__dbg.length > 14) window.__dbg.shift();
     const el = document.getElementById('dbgOverlay');
     if (el && !el.classList.contains('hidden')) el.textContent = window.__dbg.join('\n');
   }
+  window.addEventListener('unhandledrejection', e => dbg('REJECT: ' + (e.reason?.message || e.reason)));
+  window.addEventListener('error', e => dbg('ERR: ' + e.message));
+
+  let heartbeatTimer = null;
+  let reconnectAttempt = 0;
+
+  function startHeartbeat() {
+    stopHeartbeat();
+    heartbeatTimer = setInterval(() => {
+      // App-level heartbeat: keeps the socket warm through NATs/sleep cycles
+      if (wsOpen && ws.readyState === WebSocket.OPEN) {
+        try { ws.send(JSON.stringify({ v: PROTO_VER, type: 'ping', sid: SESSION_ID })); } catch {}
+      }
+    }, 20000);
+  }
+  function stopHeartbeat() { clearInterval(heartbeatTimer); heartbeatTimer = null; }
 
   function relayConnect() {
     if (!networkId) return;
@@ -441,9 +457,10 @@
 
     ws.onopen = () => {
       wsOpen = true;
+      reconnectAttempt = 0;
       setStatus('Online', 'online');
       dbg('WS OPEN');
-      log('Connected to relay — presence live', 'success');
+      startHeartbeat();
       ws.send(JSON.stringify({ v: PROTO_VER, type: 'join', sid: SESSION_ID, name: deviceName, kind: deviceKind }));
     };
 
@@ -452,17 +469,33 @@
       if (!msg || msg.v !== PROTO_VER) return;
       if (msg.type === 'peers') syncPeers(msg.peers || []);
       else if (msg.type === 'signal') handleSignal(msg).catch(err => log(`Signal error: ${err.message}`, 'error'));
+      // ping frames are answered by the DO auto-response; nothing to do
     };
 
-    ws.onclose = e => { wsOpen = false; dbg(`WS CLOSE code=${e.code} reason=${e.reason || '-'} clean=${e.wasClean}`); scheduleReconnect(); };
+    ws.onclose = e => {
+      wsOpen = false;
+      stopHeartbeat();
+      dbg(`WS CLOSE code=${e.code} reason=${e.reason || '-'} clean=${e.wasClean}`);
+      scheduleReconnect();
+    };
     ws.onerror = () => { dbg('WS ERROR'); try { ws.close(); } catch {} };
   }
 
   function scheduleReconnect() {
     setStatus('Reconnecting', 'off');
     clearTimeout(reconnectTimer);
-    reconnectTimer = setTimeout(relayConnect, 2500);
+    // exponential backoff capped at 10s, gentler on mobile battery + flaky NAT
+    const delay = Math.min(10000, 600 * Math.pow(1.7, reconnectAttempt));
+    reconnectAttempt++;
+    reconnectTimer = setTimeout(relayConnect, delay);
   }
+
+  // Mobile browsers kill sockets on background/rotate/network flap; reconnect on resume
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) relayConnect();
+  });
+  window.addEventListener('online', relayConnect);
+  window.addEventListener('focus', relayConnect);
 
   function relaySend(obj) {
     if (wsOpen && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));

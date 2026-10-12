@@ -243,10 +243,10 @@
   //  Transfer: WebRTC DataChannels, direct P2P (4×unordered, 64KB)
   // ================================================================
 
-  // ⚠️ Set this after `npx wrangler deploy` prints your Worker URL.
-  // Use wss:// (WebSocket). Example: wss://airlocal-relay.you.workers.dev
+  // Deployed relay (Cloudflare Worker). Override at runtime via console:
+  //   localStorage.setItem('airlocal.relay', 'wss://your-worker.workers.dev')
   const RELAY_URL = localStorage.getItem('airlocal.relay')
-    || 'wss://airlocal-relay.YOUR-SUBDOMAIN.workers.dev';
+    || 'wss://airlocal-relay.iridescent-alarm.workers.dev';
 
   const CHUNK_SIZE = 64 * 1024;
   const NUM_CHANNELS = 4;

@@ -39,6 +39,18 @@ npx vercel --prod
 
 That's it — no env vars, no build step, no database.
 
+### No-signup quick start
+
+Don't want a Cloudflare login yet? Deploy to a free temporary preview account (live for 60 minutes):
+
+```bash
+cd worker
+npx wrangler deploy --temporary
+```
+
+A currently-deployed temporary relay is baked in for instant testing:
+`wss://airlocal-relay.iridescent-alarm.workers.dev` — it expires, so deploy your own Worker for production.
+
 ## How discovery works
 
 1. Each device SHA-256-hashes its public IP → a per-network room id.

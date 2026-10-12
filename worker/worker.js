@@ -3,7 +3,7 @@
 // Free tier: 100k req/day + DO hibernation (idle costs nothing).
 
 const PROTO_VER = 1;
-const STALE_MS = 15000;
+const STALE_MS = 65000;
 
 export default {
   async fetch(request, env) {
@@ -38,7 +38,14 @@ export class Room {
     this.peers = new Map();
     for (const ws of this.state.getWebSockets()) {
       const att = ws.deserializeAttachment();
-      if (att && att.sid) this.peers.set(att.sid, { ws, name: att.name, kind: att.kind });
+      if (att && att.sid) {
+        this.peers.set(att.sid, {
+          ws,
+          name: att.name,
+          kind: att.kind,
+          lastSeen: att.lastSeen || Date.now(),
+        });
+      }
     }
   }
 
@@ -56,12 +63,22 @@ export class Room {
 
     switch (msg.type) {
       case 'ping':
+        if (this.peers.get(msg.sid)?.ws === ws) {
+          const peer = this.peers.get(msg.sid);
+          peer.lastSeen = Date.now();
+          ws.serializeAttachment({ sid: msg.sid, name: peer.name, kind: peer.kind, lastSeen: peer.lastSeen });
+        }
         return; // app-level keep-alive; presence refresh happens via roster broadcast
       case 'join': {
         const name = String(msg.name || 'Device').slice(0, 48);
         const kind = String(msg.kind || 'other').slice(0, 16);
-        ws.serializeAttachment({ sid: msg.sid, name, kind });
-        this.peers.set(msg.sid, { ws, name, kind });
+        const previous = this.peers.get(msg.sid);
+        if (previous && previous.ws !== ws) {
+          try { previous.ws.close(); } catch {}
+        }
+        const lastSeen = Date.now();
+        ws.serializeAttachment({ sid: msg.sid, name, kind, lastSeen });
+        this.peers.set(msg.sid, { ws, name, kind, lastSeen });
         this.broadcastPeers();
         break;
       }
@@ -103,6 +120,13 @@ export class Room {
   }
 
   broadcastPeers() {
+    const now = Date.now();
+    for (const [sid, p] of this.peers) {
+      if (now - (p.lastSeen || now) > STALE_MS) {
+        this.peers.delete(sid);
+        try { p.ws.close(); } catch {}
+      }
+    }
     const roster = [];
     for (const [sid, p] of this.peers) roster.push({ sid, name: p.name, kind: p.kind });
     const frame = JSON.stringify({ v: PROTO_VER, type: 'peers', peers: roster });

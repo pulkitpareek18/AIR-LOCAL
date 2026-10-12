@@ -9,6 +9,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <script>
+    (() => {
+      const preference = localStorage.getItem('airlocal.theme') || 'device';
+      const dark = preference === 'dark' || (preference === 'device' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark', dark);
+      document.documentElement.classList.toggle('light', !dark);
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     // shadcn/ui zinc-dark design tokens (same palette as ui.shadcn.com dark)
@@ -18,20 +26,20 @@
         container: { center: true, padding: '1rem', screens: { '2xl': '896px' } },
         extend: {
           colors: {
-            border: 'hsl(240 3.7% 15.9%)',
-            input: 'hsl(240 3.7% 15.9%)',
-            ring: 'hsl(240 4.9% 83.9%)',
-            background: 'hsl(240 10% 3.9%)',
-            foreground: 'hsl(0 0% 98%)',
-            primary: { DEFAULT: 'hsl(0 0% 98%)', foreground: 'hsl(240 5.9% 10%)' },
-            secondary: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(0 0% 98%)' },
-            destructive: { DEFAULT: 'hsl(0 38% 43%)', foreground: 'hsl(0 0% 98%)' },
-            muted: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(240 5% 64.9%)' },
-            accent: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(0 0% 98%)' },
-            card: { DEFAULT: 'hsl(240 10% 3.9%)', foreground: 'hsl(0 0% 98%)' },
-            popover: { DEFAULT: 'hsl(240 10% 3.9%)', foreground: 'hsl(0 0% 98%)' },
-            success: 'hsl(142 32% 40%)',
-            warning: 'hsl(38 38% 45%)',
+            border: 'hsl(var(--border))',
+            input: 'hsl(var(--input))',
+            ring: 'hsl(var(--ring))',
+            background: 'hsl(var(--background))',
+            foreground: 'hsl(var(--foreground))',
+            primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
+            secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
+            destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
+            muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
+            accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
+            card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+            popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
+            success: 'hsl(var(--success))',
+            warning: 'hsl(var(--warning))',
           },
           borderRadius: { lg: '0.5rem', md: 'calc(0.5rem - 2px)', sm: 'calc(0.5rem - 4px)' },
           fontFamily: {
@@ -346,6 +354,14 @@
       <button onclick="renameSelf(); closeSettings()" class="flex w-full items-center gap-3 rounded-md border border-border px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"><i data-lucide="pencil" class="h-4 w-4 text-muted-foreground"></i><span><span class="block font-medium">Rename this device</span><span class="text-xs text-muted-foreground">Choose the name other devices see.</span></span></button>
       <button onclick="editRoom(); closeSettings()" class="flex w-full items-center gap-3 rounded-md border border-border px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"><i data-lucide="hash" class="h-4 w-4 text-muted-foreground"></i><span><span class="block font-medium">Change room code</span><span class="text-xs text-muted-foreground">Use the same four-digit code on another device.</span></span></button>
       <button onclick="clearTransferHistory(); closeSettings()" class="flex w-full items-center gap-3 rounded-md border border-border px-3 py-3 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"><i data-lucide="broom" class="h-4 w-4 text-muted-foreground"></i><span><span class="block font-medium">Clear transfer history</span><span class="text-xs text-muted-foreground">Remove completed and stopped activity cards.</span></span></button>
+      <label class="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-3 text-sm">
+        <span class="flex items-center gap-3"><i data-lucide="palette" class="h-4 w-4 text-muted-foreground"></i><span><span class="block font-medium">Color theme</span><span class="text-xs text-muted-foreground">Use your device setting or choose a theme.</span></span></span>
+        <select id="themeSelect" onchange="setTheme(this.value)" class="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <option value="device">Device</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
     </div>
     <div class="border-t border-border px-5 py-4 text-xs leading-relaxed text-muted-foreground">Files are transferred directly between your devices. AirLocal does not upload, store, or inspect your files. The relay only helps devices find and connect to each other.</div>
   </dialog>

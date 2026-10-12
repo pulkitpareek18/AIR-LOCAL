@@ -78,13 +78,34 @@
     lucide.createIcons();
     setTimeout(() => toast.remove(), 4500);
   }
+  function currentTheme() {
+    return localStorage.getItem('airlocal.theme') || 'device';
+  }
+  function applyTheme(theme) {
+    const preference = ['device', 'light', 'dark'].includes(theme) ? theme : 'device';
+    const dark = preference === 'dark' || (preference === 'device' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.classList.toggle('light', !dark);
+    const select = document.getElementById('themeSelect');
+    if (select) select.value = preference;
+  }
+  function setTheme(theme) {
+    const preference = ['device', 'light', 'dark'].includes(theme) ? theme : 'device';
+    localStorage.setItem('airlocal.theme', preference);
+    applyTheme(preference);
+    showToast('Theme updated', preference === 'device' ? 'Following your device setting.' : `${preference[0].toUpperCase()}${preference.slice(1)} theme enabled.`, 'success');
+  }
   function dismissOnboarding() {
     localStorage.setItem('airlocal.onboarding.dismissed', '1');
     document.getElementById('onboardingCard')?.remove();
   }
   function toggleSettings() {
     const dialog = document.getElementById('settingsDialog');
-    if (dialog?.open) dialog.close(); else dialog?.showModal();
+    if (dialog?.open) dialog.close();
+    else {
+      document.getElementById('themeSelect').value = currentTheme();
+      dialog?.showModal();
+    }
   }
   function closeSettings() { document.getElementById('settingsDialog')?.close(); }
   function clearTransferHistory() {
@@ -1140,6 +1161,10 @@
 
   // ---------- Boot ----------
   window.addEventListener('DOMContentLoaded', async () => {
+    applyTheme(currentTheme());
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (currentTheme() === 'device') applyTheme('device');
+    });
     await clearStaleOpfsFiles();
     lucide.createIcons();
     document.getElementById('confirmDialog').addEventListener('close', () => {

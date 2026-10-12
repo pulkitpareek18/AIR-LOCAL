@@ -302,6 +302,8 @@
   let activePeer = null;
   let pendingPeer = null;
   let pendingIncoming = null;       // { from, name }
+  let qrTargetSid = null;
+  let qrConnectionStarted = false;
   let stagedFiles = [];
   const sendTransfers = new Map();
   const receiveTransfers = new Map();
@@ -328,12 +330,16 @@
   // ---------- Room code (4-digit OTP, shareable or QR-scannable) ----------
   function generateRoom() { return String(Math.floor(1000 + Math.random() * 9000)); }
   function sanitizeRoom(s) { return String(s || '').replace(/[^0-9]/g, '').slice(0, 4); }
+  function sanitizeSid(value) {
+    return /^[0-9a-f-]{36}$/i.test(String(value || '')) ? String(value) : null;
+  }
   function getRoom() {
     // URL deep-link (from QR scan) wins; else persisted room; else generate
     const urlRoom = sanitizeRoom(new URLSearchParams(location.search).get('room'));
     if (urlRoom && urlRoom.length === 4) {
       localStorage.setItem('airlocal.room', urlRoom);
-      history.replaceState(null, '', location.pathname); // clean the ?room= param
+      const target = sanitizeSid(new URLSearchParams(location.search).get('device'));
+      history.replaceState(null, '', target ? `${location.pathname}?device=${encodeURIComponent(target)}` : location.pathname);
       return urlRoom;
     }
     let room = sanitizeRoom(localStorage.getItem('airlocal.room'));
@@ -359,7 +365,8 @@
     setRoom(room);
   }
   function roomUrl() {
-    return `${location.origin}${location.pathname}?room=${getRoom()}`;
+    const params = new URLSearchParams({ room: getRoom(), device: SESSION_ID });
+    return `${location.origin}${location.pathname}?${params}`;
   }
   function renderQr() {
     const box = document.getElementById('qrBox');
@@ -544,6 +551,11 @@
       if (!seen.has(sid) && sid !== activePeer) removePeer(sid);
     }
     refreshPeerUI();
+    if (qrTargetSid && !qrConnectionStarted && peers.has(qrTargetSid)) {
+      qrConnectionStarted = true;
+      requestConnection(qrTargetSid);
+      log('QR target found — requesting direct connection', 'success');
+    }
   }
 
   function removePeer(sid) {
@@ -965,6 +977,8 @@
     lucide.createIcons();
     setupDropZone();
 
+    qrTargetSid = sanitizeSid(new URLSearchParams(location.search).get('device'));
+    if (qrTargetSid === SESSION_ID) qrTargetSid = null;
     networkId = getRoom();
     document.getElementById('networkLabel').textContent = networkId;
     document.getElementById('selfRoomHint').textContent = networkId;

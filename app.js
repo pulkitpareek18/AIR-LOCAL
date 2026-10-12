@@ -185,11 +185,17 @@
   function setRoom(room) {
     localStorage.setItem('airlocal.room', room);
     networkId = room;
+    clearPeerRoster();
     const networkLabel = document.getElementById('networkLabel');
     if (networkLabel) networkLabel.textContent = room;
     document.getElementById('selfRoomHint').textContent = room;
     renderQr();
     try { if (ws) ws.close(); } catch {} // reconnect into the new room
+  }
+  function clearPeerRoster() {
+    peers.clear();
+    document.querySelectorAll('#peerGrid > [id^="peer-"]').forEach(el => el.remove());
+    refreshPeerUI();
   }
   async function editRoom() {
     const input = await requestInput('Change room code', 'Use the same four-digit code on every device.', getRoom());
@@ -452,6 +458,7 @@
     ws.onopen = () => {
       wsOpen = true;
       reconnectAttempt = 0;
+      clearPeerRoster();
       setStatus('Online', 'online');
       dbg('WS OPEN');
       startHeartbeat();
@@ -505,9 +512,11 @@
     // Keep the nearby list strictly limited to other sessions.
     peers.delete(SESSION_ID);
     document.getElementById(`peer-${SESSION_ID}`)?.remove();
+    const now = Date.now();
     const seen = new Set();
     for (const p of roster) {
       if (!p || p.sid === SESSION_ID) continue;
+      if (p.lastSeen && now - p.lastSeen > 65000) continue;
       seen.add(p.sid);
       if (!peers.has(p.sid)) {
         peers.set(p.sid, p);

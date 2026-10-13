@@ -403,6 +403,19 @@
     localStorage.setItem('airlocal.onboarding.dismissed', '1');
     document.getElementById('onboardingCard')?.remove();
   }
+  function renderInfoPage() {
+    const infoMain = document.getElementById('infoMain');
+    const appMain = document.getElementById('appMain');
+    if (!infoMain || !appMain) return;
+    const page = location.hash.slice(1);
+    const isInfoPage = page === 'how-it-works' || page === 'citations';
+    appMain.classList.toggle('hidden', isInfoPage);
+    infoMain.classList.toggle('hidden', !isInfoPage);
+    if (isInfoPage) {
+      requestAnimationFrame(() => document.getElementById(page)?.scrollIntoView({ block: 'start' }));
+      lucide.createIcons();
+    }
+  }
   function toggleSettings() {
     const dialog = document.getElementById('settingsDialog');
     if (dialog?.open) dialog.close();
@@ -1546,6 +1559,8 @@
 
   // ---------- Boot ----------
   window.addEventListener('DOMContentLoaded', async () => {
+    renderInfoPage();
+    window.addEventListener('hashchange', renderInfoPage);
     applyTheme(currentTheme());
     checkBrowserSupport();
     await restoreSaveDirectory();

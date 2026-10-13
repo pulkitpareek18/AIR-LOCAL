@@ -54,6 +54,10 @@
   let toastTimer = null;
   let saveDirectoryHandle = null;
   let saveDirectoryReady = false;
+  let backupSessionDirectory = null;
+  let backupSessionPath = '';
+  let overwritePolicy = null;
+  let pendingOverwrite = null;
 
   // ---------- Utils ----------
   function detectKind() {
@@ -116,6 +120,16 @@
   function organizeByType() {
     return localStorage.getItem('airlocal.organize-files') !== '0';
   }
+  function backupMode() {
+    return localStorage.getItem('airlocal.backup-mode') === '1';
+  }
+  function setBackupMode(value) {
+    localStorage.setItem('airlocal.backup-mode', value ? '1' : '0');
+    backupSessionDirectory = null;
+    backupSessionPath = '';
+    overwritePolicy = null;
+    updateSaveLocationUI();
+  }
   function setOrganizeByType(value) {
     localStorage.setItem('airlocal.organize-files', value ? '1' : '0');
     updateSaveLocationUI();
@@ -127,7 +141,8 @@
     const organize = document.getElementById('organizeFiles');
     const location = saveDirectoryReady ? saveDirectoryHandle.name : 'Browser Downloads';
     const detail = saveDirectoryReady
-      ? organizeByType() ? 'Files are organized into type folders.' : 'Files are saved directly here.'
+      ? backupMode() ? `Backup mode · ${organizeByType() ? 'organized by type' : 'kept together'}`
+        : organizeByType() ? 'Files are organized into type folders.' : 'Files are saved directly here.'
       : 'Files will use your browser download folder.';
     if (name) name.textContent = saveDirectoryReady
       ? `${location}${organizeByType() ? ' · organized by type' : ''}`
@@ -135,6 +150,8 @@
     if (mainName) mainName.textContent = location;
     if (mainDescription) mainDescription.textContent = detail;
     if (organize) organize.checked = organizeByType();
+    const backup = document.getElementById('backupMode');
+    if (backup) backup.checked = backupMode();
   }
   async function chooseSaveDirectory() {
     if (!window.showDirectoryPicker) {
@@ -171,6 +188,9 @@
   async function clearSaveDirectory() {
     saveDirectoryHandle = null;
     saveDirectoryReady = false;
+    backupSessionDirectory = null;
+    backupSessionPath = '';
+    overwritePolicy = null;
     await saveDirectoryHandleToDb(null);
     updateSaveLocationUI();
     showToast('Save folder cleared', 'Received files will use browser downloads.', 'success');
@@ -178,6 +198,21 @@
   function manageSaveLocation() {
     if (saveDirectoryReady) toggleSettings();
     else chooseSaveDirectory();
+  }
+  function showOverwriteDialog(name, location) {
+    const dialog = document.getElementById('overwriteDialog');
+    if (!dialog) return Promise.resolve('skip');
+    document.getElementById('overwriteFileName').textContent = name;
+    document.getElementById('overwriteLocation').textContent = location;
+    dialog.showModal();
+    return new Promise(resolve => { pendingOverwrite = { resolve, dialog }; });
+  }
+  function resolveOverwrite(action) {
+    if (!pendingOverwrite) return;
+    const { resolve, dialog } = pendingOverwrite;
+    pendingOverwrite = null;
+    if (dialog.open) dialog.close();
+    resolve(action);
   }
   function saveDirectoryDb() {
     return new Promise((resolve, reject) => {
@@ -212,6 +247,9 @@
       if (handle && (await handle.queryPermission({ mode: 'readwrite' })) === 'granted') {
         saveDirectoryHandle = handle;
         saveDirectoryReady = true;
+        backupSessionDirectory = null;
+        backupSessionPath = '';
+        overwritePolicy = null;
       }
     } catch (error) {
       dbg('Save folder restore failed: ' + error.message);
@@ -231,20 +269,70 @@
   function safeFileName(name) {
     return name.split(/[\\/]/).pop().replace(/[<>:"|?*\u0000-\u001f]/g, '_').trim() || 'received-file';
   }
+  function timestampPart(value) {
+    return String(value).padStart(2, '0');
+  }
+  async function getBackupDirectory() {
+    if (!backupMode()) return { directory: saveDirectoryHandle, path: saveDirectoryHandle.name };
+    if (backupSessionDirectory) return { directory: backupSessionDirectory, path: backupSessionPath };
+    const now = new Date();
+    const date = `${now.getFullYear()}-${timestampPart(now.getMonth() + 1)}-${timestampPart(now.getDate())}`;
+    const time = `${timestampPart(now.getHours())}-${timestampPart(now.getMinutes())}-${timestampPart(now.getSeconds())}`;
+    const dateDirectory = await saveDirectoryHandle.getDirectoryHandle(date, { create: true });
+    backupSessionDirectory = await dateDirectory.getDirectoryHandle(time, { create: true });
+    backupSessionPath = `${saveDirectoryHandle.name}/${date}/${time}`;
+    return { directory: backupSessionDirectory, path: backupSessionPath };
+  }
+  async function uniqueFileName(directory, name) {
+    const dot = name.lastIndexOf('.');
+    const base = dot > 0 ? name.slice(0, dot) : name;
+    const extension = dot > 0 ? name.slice(dot) : '';
+    let candidate = name;
+    let index = 1;
+    while (true) {
+      try {
+        await directory.getFileHandle(candidate);
+        candidate = `${base} (${index++})${extension}`;
+      } catch (error) {
+        if (error.name === 'NotFoundError') return candidate;
+        throw error;
+      }
+    }
+  }
   async function saveToSelectedDirectory(file, name) {
     if (!saveDirectoryHandle || !saveDirectoryReady) return null;
     try {
       if ((await saveDirectoryHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('Folder permission expired');
+      const backup = await getBackupDirectory();
       const category = organizeByType() ? saveCategory(name) : null;
       const directory = category
-        ? await saveDirectoryHandle.getDirectoryHandle(category, { create: true })
-        : saveDirectoryHandle;
-      const targetName = safeFileName(name);
+        ? await backup.directory.getDirectoryHandle(category, { create: true })
+        : backup.directory;
+      const originalName = safeFileName(name);
+      let targetName = originalName;
+      let exists = true;
+      try { await directory.getFileHandle(originalName); } catch (error) {
+        if (error.name === 'NotFoundError') exists = false;
+        else throw error;
+      }
+      if (exists) {
+        const location = `${backup.path}${category ? `/${category}` : ''}`;
+        const action = overwritePolicy || await showOverwriteDialog(originalName, location);
+        if (action === 'replace-all') {
+          overwritePolicy = 'replace';
+        } else if (action === 'replace') {
+          targetName = originalName;
+        } else if (action === 'keep') {
+          targetName = await uniqueFileName(directory, originalName);
+        } else {
+          return { skipped: true, name: originalName, folder: location };
+        }
+      }
       const target = await directory.getFileHandle(targetName, { create: true });
       const writable = await target.createWritable();
       await writable.write(file);
       await writable.close();
-      return { folder: category ? `${saveDirectoryHandle.name}/${category}` : saveDirectoryHandle.name, name: targetName };
+      return { folder: `${backup.path}${category ? `/${category}` : ''}`, name: targetName };
     } catch (error) {
       saveDirectoryReady = false;
       saveDirectoryHandle = null;
@@ -984,6 +1072,9 @@
     peerDisconnectTimer = null;
     if (pc) { try { pc.close(); } catch {} }
     pc = null; channels = []; controlChannel = null; activePeer = null;
+    backupSessionDirectory = null;
+    backupSessionPath = '';
+    overwritePolicy = null;
     refreshPeerUI();
     for (const transfer of receiveTransfers.values()) {
       discardReceiveTransfer(transfer);
@@ -1116,7 +1207,14 @@
     transfer.writable = null;
     const file = await transfer.fileHandle.getFile();
     const savedToFolder = await saveToSelectedDirectory(file, transfer.name);
-    if (!savedToFolder) {
+    if (!savedToFolder || savedToFolder.skipped) {
+      if (savedToFolder?.skipped) {
+        transfer.status = 'stopped';
+        renderTransfers();
+        showToast('File skipped', `${savedToFolder.name} was not saved because it already exists.`, 'warning');
+        try { (await navigator.storage.getDirectory()).removeEntry(transfer.name); } catch {}
+        return;
+      }
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
       a.href = url; a.download = safeFileName(transfer.name);
@@ -1403,6 +1501,9 @@
       const { resolve } = pendingConfirmation;
       pendingConfirmation = null;
       resolve(false);
+    });
+    document.getElementById('overwriteDialog').addEventListener('close', () => {
+      if (pendingOverwrite) resolveOverwrite('skip');
     });
     document.getElementById('inputDialog').addEventListener('close', () => {
       if (!pendingInput) return;

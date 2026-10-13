@@ -79,6 +79,12 @@ expires, AirLocal automatically falls back to the browser's normal Downloads
 behavior. iOS Safari and some Firefox/private-browsing configurations
 typically use this fallback.
 
+When a received file already exists in the destination, AirLocal offers
+`Replace`, `Keep both`, `Skip`, and `Replace all` choices. Optional Backup mode
+creates a new session folder such as `2026-10-13/09-45-12/` under the selected
+folder for every connection. Backup sessions can either use the same file-type
+subfolders or keep all files directly in that timestamped folder.
+
 ## Production release checklist
 
 Before sharing a public URL:

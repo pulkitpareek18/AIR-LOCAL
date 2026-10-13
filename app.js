@@ -79,12 +79,25 @@
   }
   function updateConnectionMode() {
     const element = document.getElementById('networkMode');
+    const estimate = document.getElementById('networkEstimate');
     if (!element) return;
+    const connection = navigator.connection;
     const mode = connectionMode();
+    const effectiveType = connection?.effectiveType;
+    const downlink = Number(connection?.downlink);
     element.textContent = mode;
     element.title = mode === 'Wi-Fi'
       ? 'Connected over Wi-Fi. Browsers do not expose whether it is 2.4, 5, or 6 GHz.'
       : 'Detected from browser network information when available.';
+    if (estimate) {
+      const details = [];
+      if (effectiveType) details.push(effectiveType.toUpperCase());
+      if (Number.isFinite(downlink) && downlink > 0) details.push(`~${downlink} Mbps down`);
+      estimate.textContent = details.length ? `· ${details.join(' · ')}` : '· speed unavailable';
+      estimate.title = details.length
+        ? 'Browser-provided estimate. This is not the maximum transmit speed.'
+        : 'This browser does not expose a connection speed estimate.';
+    }
   }
   function iconFor(kind) {
     return { ios: 'smartphone', android: 'smartphone', windows: 'monitor', mac: 'laptop', linux: 'hard-drive' }[kind] || 'monitor';

@@ -25,6 +25,14 @@ Open AirLocal on two devices, pair them using a QR code or room code, and transf
 ---
 <img width="967" height="914" alt="image" src="https://github.com/user-attachments/assets/5954deb0-95c3-4421-b1fd-4a0f358d385b" />
 
+
+## See AirLocal in Action
+
+Click the preview below to explore the interactive walkthrough.
+
+[![AirLocal Interactive Demo](public/airlocal-demo.gif)](https://app.arcade.software/share/MqtQuSzwEQc2LtmulW95)
+
+
 ## The idea
 
 Sharing a file between your phone and laptop should be as simple as sharing it between two devices in the same ecosystem.

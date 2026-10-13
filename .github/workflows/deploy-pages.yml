@@ -1,3 +1,4 @@
+```yaml
 name: Deploy to GitHub Pages
 
 on:
@@ -18,6 +19,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -37,11 +39,14 @@ jobs:
       - name: Build the site
         run: npm run build -- --mode github-pages
 
-      - name: Preserve SPA routes
+      - name: Configure SPA fallback
         run: cp dist/index.html dist/404.html
 
-      - name: Configure Pages
+      - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+
+      - name: Preserve custom domain
+        run: echo "airlocal.js.org" > dist/CNAME
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -52,8 +57,10 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     needs: build
     runs-on: ubuntu-latest
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

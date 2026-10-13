@@ -157,6 +157,7 @@
         <div class="min-w-0">
           <p class="text-xs font-medium">Received files are stored in</p>
           <p id="mainSaveLocationName" class="mt-0.5 truncate text-sm font-semibold">Browser Downloads</p>
+          <p id="mainSaveLocationPath" class="mt-1 break-all font-mono text-[10px] text-muted-foreground">Browser Downloads</p>
           <p id="mainSaveLocationDescription" class="mt-0.5 text-[11px] text-muted-foreground">Files will use your browser download folder.</p>
         </div>
       </div>
@@ -350,6 +351,8 @@
           <div class="min-w-0 flex-1">
             <p class="text-sm font-medium">Save location</p>
             <p id="saveLocationName" class="mt-0.5 truncate text-xs text-muted-foreground">Browser Downloads (fallback)</p>
+            <p class="mt-1 text-[10px] text-muted-foreground">Relative folder path</p>
+            <p id="saveLocationPath" class="break-all font-mono text-[10px] text-foreground">Browser Downloads</p>
             <div class="mt-3 flex gap-2">
               <button onclick="chooseSaveDirectory()" class="inline-flex h-8 items-center rounded-md border border-input bg-background px-2.5 text-xs font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">Choose folder</button>
               <button onclick="clearSaveDirectory()" class="inline-flex h-8 items-center rounded-md px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">Use Downloads</button>
@@ -364,6 +367,7 @@
           <input id="backupMode" type="checkbox" onchange="setBackupMode(this.checked)" class="mt-0.5 h-3.5 w-3.5 rounded border-input accent-primary">
           <span><span class="block font-medium text-foreground">Backup mode</span><span>Each connection creates a new date-and-time folder so daily backups never overwrite earlier sessions.</span></span>
         </label>
+        <p class="mt-3 text-[10px] leading-relaxed text-muted-foreground">Browsers do not expose the full Finder or File Explorer path. AirLocal shows the selected folder and the exact relative destination used for each received file.</p>
       </div>
       <label class="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-3 text-sm">
         <span class="flex items-center gap-3"><i data-lucide="palette" class="h-4 w-4 text-muted-foreground"></i><span><span class="block font-medium">Color theme</span><span class="text-xs text-muted-foreground">Use your device setting or choose a theme.</span></span></span>

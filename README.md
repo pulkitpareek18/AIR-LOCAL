@@ -79,6 +79,11 @@ expires, AirLocal automatically falls back to the browser's normal Downloads
 behavior. iOS Safari and some Firefox/private-browsing configurations
 typically use this fallback.
 
+The browser does not expose an absolute Finder/File Explorer path to web apps.
+AirLocal therefore displays the selected folder name and the exact relative
+destination path, including backup timestamps and type folders, in the
+save-location panel and each completion message.
+
 When a received file already exists in the destination, AirLocal offers
 `Replace`, `Keep both`, `Skip`, and `Replace all` choices. Optional Backup mode
 creates a new session folder such as `2026-10-13/09-45-12/` under the selected

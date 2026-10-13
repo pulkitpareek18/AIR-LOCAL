@@ -123,6 +123,17 @@
   function backupMode() {
     return localStorage.getItem('airlocal.backup-mode') === '1';
   }
+  function backupNamingConvention() {
+    return localStorage.getItem('airlocal.backup-naming') || '{date}/{time}';
+  }
+  function setBackupNamingConvention(value) {
+    const convention = value.trim() || '{date}/{time}';
+    localStorage.setItem('airlocal.backup-naming', convention);
+    backupSessionDirectory = null;
+    backupSessionPath = '';
+    overwritePolicy = null;
+    updateSaveLocationUI();
+  }
   function setBackupMode(value) {
     localStorage.setItem('airlocal.backup-mode', value ? '1' : '0');
     backupSessionDirectory = null;
@@ -159,6 +170,8 @@
     if (organize) organize.checked = organizeByType();
     const backup = document.getElementById('backupMode');
     if (backup) backup.checked = backupMode();
+    const naming = document.getElementById('backupNaming');
+    if (naming && document.activeElement !== naming) naming.value = backupNamingConvention();
   }
   async function chooseSaveDirectory() {
     if (!window.showDirectoryPicker) {
@@ -205,6 +218,11 @@
   function manageSaveLocation() {
     if (saveDirectoryReady) toggleSettings();
     else chooseSaveDirectory();
+  }
+  function openSelectedFolder() {
+    if (!saveDirectoryReady) return chooseSaveDirectory();
+    showToast('Use the folder picker to access this folder', 'Browsers cannot open Finder or File Explorer directly. Choose the same folder to access it.', 'info');
+    chooseSaveDirectory();
   }
   function showOverwriteDialog(name, location) {
     const dialog = document.getElementById('overwriteDialog');
@@ -279,15 +297,37 @@
   function timestampPart(value) {
     return String(value).padStart(2, '0');
   }
+  function expandBackupConvention(now) {
+    const values = {
+      date: `${now.getFullYear()}-${timestampPart(now.getMonth() + 1)}-${timestampPart(now.getDate())}`,
+      time: `${timestampPart(now.getHours())}-${timestampPart(now.getMinutes())}-${timestampPart(now.getSeconds())}`,
+      year: String(now.getFullYear()),
+      month: timestampPart(now.getMonth() + 1),
+      day: timestampPart(now.getDate()),
+      hour: timestampPart(now.getHours()),
+      minute: timestampPart(now.getMinutes()),
+      second: timestampPart(now.getSeconds())
+    };
+    return backupNamingConvention()
+      .replace(/\{(date|time|year|month|day|hour|minute|second)\}/g, (_, token) => values[token])
+      .split(/[\\/]+/)
+      .map(part => part.replace(/[<>:"|?*\u0000-\u001f]/g, '_').trim())
+      .filter(Boolean)
+      .slice(0, 8);
+  }
   async function getBackupDirectory() {
     if (!backupMode()) return { directory: saveDirectoryHandle, path: saveDirectoryHandle.name };
     if (backupSessionDirectory) return { directory: backupSessionDirectory, path: backupSessionPath };
     const now = new Date();
-    const date = `${now.getFullYear()}-${timestampPart(now.getMonth() + 1)}-${timestampPart(now.getDate())}`;
-    const time = `${timestampPart(now.getHours())}-${timestampPart(now.getMinutes())}-${timestampPart(now.getSeconds())}`;
-    const dateDirectory = await saveDirectoryHandle.getDirectoryHandle(date, { create: true });
-    backupSessionDirectory = await dateDirectory.getDirectoryHandle(time, { create: true });
-    backupSessionPath = `${saveDirectoryHandle.name}/${date}/${time}`;
+    const parts = expandBackupConvention(now);
+    let directory = saveDirectoryHandle;
+    const pathParts = [saveDirectoryHandle.name];
+    for (const part of parts) {
+      directory = await directory.getDirectoryHandle(part, { create: true });
+      pathParts.push(part);
+    }
+    backupSessionDirectory = directory;
+    backupSessionPath = pathParts.join('/');
     updateSaveLocationUI();
     return { directory: backupSessionDirectory, path: backupSessionPath };
   }

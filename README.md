@@ -84,6 +84,11 @@ AirLocal therefore displays the selected folder name and the exact relative
 destination path, including backup timestamps and type folders, in the
 save-location panel and each completion message.
 
+Backup folder names can be customized in Settings. The default convention is
+`{date}/{time}`. Supported tokens are `{date}`, `{time}`, `{year}`, `{month}`,
+`{day}`, `{hour}`, `{minute}`, and `{second}`. For example,
+`Backup-{date}/{time}` creates `Backup-2026-10-13/09-45-27/`.
+
 When a received file already exists in the destination, AirLocal offers
 `Replace`, `Keep both`, `Skip`, and `Replace all` choices. Optional Backup mode
 creates a new session folder such as `2026-10-13/09-45-12/` under the selected

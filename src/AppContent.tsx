@@ -26,7 +26,7 @@ export function AppContent() {
         <Button onClick={() => { (window as any).toggleSettings() }} aria-label="Open settings" title="Settings" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
           <i data-lucide="settings-2" className="h-4 w-4"></i>
         </Button>
-        <a href="https://github.com/pulkitpareek18/AIR-LOCAL" target="_blank" rel="noopener noreferrer" aria-label="View AirLocal on GitHub" title="View source on GitHub" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+        <a href="https://github.com/pulkitpareek18/AirLocal" target="_blank" rel="noopener noreferrer" aria-label="View AirLocal on GitHub" title="View source on GitHub" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
             <path d="M12 .7a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.8.1-.8.1-.8 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.4-5.5-6a4.7 4.7 0 0 1 1.2-3.3c-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2a4.7 4.7 0 0 1 1.2 3.3c0 4.6-2.8 5.7-5.5 6 .4.3.8 1 .8 2v2.9c0 .3.2.7.8.6A12 12 0 0 0 12 .7Z"/>
           </svg>
@@ -349,7 +349,7 @@ export function AppContent() {
             <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Deployment and implementation</h2>
             <ol start={17} className="mt-3 space-y-3">
               <li className="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://vercel.com/docs/deployments/overview" target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline">[17] Vercel, “Deployments Overview.”</a><p className="mt-1 text-xs leading-5 text-muted-foreground">Hosting reference for the static frontend and generated assets.</p></li>
-              <li className="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://github.com/pulkitpareek18/AIR-LOCAL" target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline">[18] Pulkit Pareek, “AirLocal Source Repository.”</a><p className="mt-1 text-xs leading-5 text-muted-foreground">Project source, relay implementation, deployment configuration, and release documentation.</p></li>
+              <li className="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://github.com/pulkitpareek18/AirLocal" target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline">[18] Pulkit Pareek, “AirLocal Source Repository.”</a><p className="mt-1 text-xs leading-5 text-muted-foreground">Project source, relay implementation, deployment configuration, and release documentation.</p></li>
             </ol>
           </div>
         </div>

@@ -1,18 +1,164 @@
 # AirLocal
 
-AirDrop-style file sharing for any device. For a direct local transfer, open the link on two devices on the same local network: shared Wi-Fi, a phone hotspot, or LAN/Ethernet. They discover each other automatically, tap to connect, and files stream directly device-to-device over WebRTC. File bytes stay on the local connection, so they do not use your internet data or get uploaded to any server.
+<p align="center">
+  <strong>Private, local file sharing from the browser.</strong><br />
+  Send files between nearby devices without accounts, uploads, or a native app.
+</p>
 
-## Architecture (why it costs ₹0)
+<p align="center">
+  <a href="https://github.com/pulkitpareek18/AirLocal">
+    <img src="https://img.shields.io/github/stars/pulkitpareek18/AirLocal?style=flat-square&logo=github" alt="GitHub stars" />
+  </a>
+  <a href="https://github.com/pulkitpareek18/AirLocal/network/members">
+    <img src="https://img.shields.io/github/forks/pulkitpareek18/AirLocal?style=flat-square&logo=github" alt="GitHub forks" />
+  </a>
+  <a href="https://github.com/pulkitpareek18/AirLocal/issues">
+    <img src="https://img.shields.io/github/issues/pulkitpareek18/AirLocal?style=flat-square" alt="Open issues" />
+  </a>
+  <a href="https://github.com/pulkitpareek18/AirLocal/commits/main">
+    <img src="https://img.shields.io/github/last-commit/pulkitpareek18/AirLocal?style=flat-square" alt="Last commit" />
+  </a>
+  <a href="https://github.com/pulkitpareek18/AirLocal">
+    <img src="https://img.shields.io/github/repo-size/pulkitpareek18/AirLocal?style=flat-square" alt="Repository size" />
+  </a>
+</p>
 
-| Layer | Technology | Cost |
-|---|---|---|
-| Hosting | Static Vite + React + TypeScript build on Vercel — no serverless functions, no KV | Free — unlimited static requests |
-| Discovery + signaling | Cloudflare Worker + Durable Object (WebSocket room per network) | Free — 100k req/day, DO hibernation (idle = ₹0) |
-| File transfer | WebRTC DataChannels, direct browser connection over your LAN | Free — bytes never touch a server |
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#privacy-and-security">Privacy</a> ·
+  <a href="#deployment">Deployment</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
 
-## Setup (one time, ~3 minutes)
+## Overview
 
-**1. Deploy the relay** (free Cloudflare account, no card):
+AirLocal is a production-oriented browser application for moving files between
+nearby devices. Open the site on both devices, pair with a QR code or a
+four-digit room code, and transfer files through a direct browser connection.
+
+For the best local experience, keep both devices on the **same local network**:
+shared Wi-Fi, a phone hotspot, or LAN/Ethernet. File bytes stay on that local
+connection, so they do not use your internet data or get uploaded to a server.
+
+### Highlights
+
+- **No account required** — open the site and start pairing.
+- **QR and room-code pairing** — scan or enter the same four-digit code.
+- **Direct browser transfers** — WebRTC DataChannels carry file data between
+  browsers.
+- **Progress and transfer telemetry** — progress, speed, and estimated time
+  remaining are shown during transfers.
+- **Reliable large-file workflow** — chunked streaming, backpressure, queues,
+  cancellation, and receiver-side cleanup.
+- **Flexible save destinations** — browser Downloads fallback or a selected
+  folder through the File System Access API.
+- **Backup mode** — create timestamped session folders after folder permission
+  has been granted.
+- **Conflict handling** — Replace, Keep both, Skip, and Replace all.
+- **Responsive interface** — Vite, React, TypeScript, Tailwind CSS, and local
+  shadcn-style UI primitives.
+- **Deployable for free** — static frontend on Vercel and a lightweight
+  Cloudflare Worker relay.
+
+## Preview
+
+```mermaid
+flowchart LR
+  A["Device A<br/>Browser"] <-->|"WebRTC file data<br/>local Wi-Fi / hotspot / LAN"| B["Device B<br/>Browser"]
+  A -->|QR / room pairing| R["Cloudflare relay"]
+  B -->|Discovery + signaling only| R
+  R --> D["Durable Object<br/>room presence"]
+```
+
+The relay coordinates discovery and signaling. It does **not** receive, store,
+or inspect file contents.
+
+## How it works
+
+1. Open AirLocal on both devices.
+2. Put both devices on the same local network: shared Wi-Fi, a phone hotspot,
+   or LAN/Ethernet.
+3. Pair by scanning the QR code or entering the same four-digit room code.
+4. Accept the connection request when prompted.
+5. Choose files and send them directly to the other browser.
+
+The room relay exchanges only the small messages needed for presence and
+WebRTC negotiation. Once the direct browser connection is established, the
+file transfer uses the local network. If devices are on different networks,
+discovery may still work, but the route and availability depend on the
+browser,
+network policy, NAT behavior, and WebRTC connectivity.
+
+## Architecture
+
+| Layer | Technology | Responsibility |
+| --- | --- | --- |
+| Frontend | Vite, React, TypeScript | Static application UI and transfer engine |
+| Styling | Tailwind CSS, local shadcn-style primitives | Accessible, responsive interface |
+| Hosting | Vercel static deployment | Serves the compiled frontend |
+| Discovery relay | Cloudflare Worker + Durable Object | Room presence and signaling |
+| Direct transfer | WebRTC DataChannels | File bytes between browsers |
+| Temporary staging | Origin Private File System (OPFS) | Disk-backed receive staging |
+| Save preferences | IndexedDB + File System Access API | Persist selected folder handles where supported |
+
+## Privacy and security
+
+- File bytes do not pass through Vercel or the Cloudflare relay.
+- WebRTC DataChannels provide the browser connection used for transfer.
+- The relay handles room presence, signaling, and limited transfer-control
+  messages only.
+- The same-network workflow keeps file traffic on the local Wi-Fi, hotspot, or
+  LAN/Ethernet connection rather than your internet connection.
+- Room codes are discovery identifiers, not passwords. Anyone who knows a room
+  code may see devices in that room, so use a fresh code for sensitive sharing.
+- QR pairing includes a device-specific token and is preferred when pairing
+  with a known device.
+- The relay validates session identifiers, limits rooms to 12 peers, rejects
+  oversized signaling payloads, and expires inactive sessions.
+
+AirLocal is a browser application, not a replacement for an audited enterprise
+file-security system. Review your browser, network, and deployment settings
+before using it for sensitive data.
+
+## Quick start
+
+### Requirements
+
+- Node.js 18 or newer
+- npm
+- A deployed Cloudflare Worker relay for multi-device discovery
+- A modern browser with HTTPS, WebRTC, WebSockets, and OPFS support
+
+### Install and run the frontend
+
+```bash
+git clone https://github.com/pulkitpareek18/AirLocal.git
+cd AirLocal
+npm install
+npm run dev
+```
+
+Open the local Vite URL shown in the terminal. To test two devices, expose the
+development server through your trusted local-network tooling or deploy the
+frontend over HTTPS.
+
+### Available scripts
+
+```bash
+npm run dev       # Start the Vite development server
+npm run check     # Type-check the frontend and syntax-check the Worker
+npm run build     # Create the production build in dist/
+```
+
+## Deployment
+
+AirLocal uses two independently deployed pieces:
+
+1. A static Vite frontend on Vercel.
+2. A Cloudflare Worker with a Durable Object for discovery and signaling.
+
+### 1. Deploy the relay
 
 ```bash
 cd worker
@@ -20,113 +166,160 @@ npx wrangler login
 npx wrangler deploy
 ```
 
-Wrangler prints your Worker URL, e.g. `https://airlocal-relay.you.workers.dev`.
+The Worker configuration is in [worker/wrangler.toml](./worker/wrangler.toml).
+After deployment, note the Worker URL.
 
-**2. Point the app at it** — set the deployed Worker URL in the `RELAY_DEFAULT`
-constant in [src/airlocal.ts](./src/airlocal.ts), then deploy the frontend. Users may override it
-locally with:
+### 2. Configure the frontend relay
+
+Set the deployed Worker URL in `RELAY_DEFAULT` in
+[src/airlocal.ts](./src/airlocal.ts), or override it in a browser for local
+testing:
 
 ```js
-localStorage.setItem('airlocal.relay.v1', 'wss://your-worker.workers.dev');
+localStorage.setItem(
+  'airlocal.relay.v1',
+  'wss://your-worker.workers.dev'
+);
 ```
 
-**3. Build and deploy the static site:**
+The relay URL must use `wss://` for an HTTPS deployment.
+
+### 3. Deploy the frontend to Vercel
 
 ```bash
 npm install
+npm run check
 npm run build
 npx vercel --prod
 ```
 
-Vercel also runs `npm run build` automatically from [vercel.json](./vercel.json).
-The production frontend uses Vite's compiled React/TypeScript bundle, local shadcn-style primitives in
-`src/components/ui`, and Tailwind CSS rather than the Tailwind CDN.
+The repository includes [vercel.json](./vercel.json), which configures the
+Vite build command and `dist` output directory.
 
-## Privacy and security
+### Custom domains
 
-- File bytes never pass through the Worker or Vercel; WebRTC carries them directly
-  between browsers.
-- Both devices should be on the same local network: shared Wi-Fi, a phone
-  hotspot, or LAN/Ethernet. The file transfer then uses that local network
-  rather than your internet connection. Only lightweight discovery and
-  signaling messages use the relay.
-- The Worker handles only room presence, WebRTC signaling, and transfer-control
-  fallback messages.
-- Room codes are discovery identifiers, not passwords. Anyone who knows a room
-  code can see the devices in that room, so use a fresh code for sensitive files.
-- QR pairing includes a device-specific token and is preferred over sharing a
-  room code manually.
-- The relay validates session identifiers, caps rooms at 12 peers, rejects
-  oversized signaling payloads, and expires inactive sessions.
+Add the domain in Vercel under **Project → Settings → Domains**. For the
+`js.org` subdomain, submit the CNAME mapping requested by the js.org project;
+the apex `A` record is not used for a js.org subdomain.
+
+## Save locations and backup mode
+
+AirLocal supports two receiver save paths:
+
+1. **Browser Downloads** — the universal fallback.
+2. **A selected folder** — available where the File System Access API and
+   permission model allow it.
+
+When a custom folder is selected, AirLocal can organize files into:
+`Images`, `Videos`, `Audio`, `Documents`, `Presentations`, `Archives`, and
+`Other`.
+
+Backup mode is available only after a custom folder has been selected and
+permission has been granted. It creates a new session folder for each
+connection. The default naming convention is:
+
+```text
+{date}/{time}
+```
+
+Supported tokens are `{date}`, `{time}`, `{year}`, `{month}`, `{day}`,
+`{hour}`, `{minute}`, and `{second}`. For example:
+
+```text
+Backup-{date}/{time}
+```
+
+When a destination file already exists, the receiver can choose Replace, Keep
+both, Skip, or Replace all. Browsers do not expose the absolute Finder or File
+Explorer path, so AirLocal displays the selected folder name and relative
+destination path instead.
 
 ## Browser support and limits
 
-AirLocal requires HTTPS, WebRTC, WebSockets, and Origin Private File System
-(OPFS). Use a current Chrome, Edge, Safari, or Firefox release. Private browsing
-or managed browsers may disable OPFS.
+AirLocal requires:
 
-Queues over 100 files, 25 GB total, or 10 GB per file show a confirmation
-warning rather than being blocked. This keeps normal use safe while allowing
-larger transfers when the user confirms and the receiving device has enough
-available storage. Actual transfer size and speed depend on the devices,
-browser, network path, and available storage.
+- HTTPS, except for browser-supported local development origins
+- WebRTC
+- WebSockets
+- Origin Private File System (OPFS)
 
-## Save locations
+Private browsing, managed browsers, and some mobile browser configurations may
+disable OPFS or the File System Access API. In those cases, AirLocal falls back
+to the browser's Downloads behavior where possible.
 
-On browsers that support the File System Access API, the receiver can choose a
-custom save folder from Settings. AirLocal can organize completed files into
-`Images`, `Videos`, `Audio`, `Documents`, `Presentations`, `Archives`, and
-`Other` subfolders. The folder permission is remembered when the browser allows
-it.
+The application warns before unusually large operations:
 
-If folder access is unavailable, permission is declined, or the permission
-expires, AirLocal automatically falls back to the browser's normal Downloads
-behavior. iOS Safari and some Firefox/private-browsing configurations
-typically use this fallback.
+- More than 100 files
+- More than 25 GB total
+- Any file larger than 10 GB
 
-The browser does not expose an absolute Finder/File Explorer path to web apps.
-AirLocal therefore displays the selected folder name and the exact relative
-destination path, including backup timestamps and type folders, in the
-save-location panel and each completion message.
+These are confirmation thresholds, not hard transfer limits. Actual limits
+depend on available storage, browser behavior, device resources, and network
+conditions.
 
-Backup folder names can be customized in Settings. The default convention is
-`{date}/{time}`. Supported tokens are `{date}`, `{time}`, `{year}`, `{month}`,
-`{day}`, `{hour}`, `{minute}`, and `{second}`. For example,
-`Backup-{date}/{time}` creates `Backup-2026-10-13/09-45-27/`.
-
-When a received file already exists in the destination, AirLocal offers
-`Replace`, `Keep both`, `Skip`, and `Replace all` choices. Optional Backup mode
-creates a new session folder such as `2026-10-13/09-45-12/` under the selected
-folder for every connection. Backup sessions can either use the same file-type
-subfolders or keep all files directly in that timestamped folder.
-
-## Production release checklist
+## Production checklist
 
 Before sharing a public URL:
 
-1. Deploy the Worker and verify `/health` returns `{"ok":true,"v":1}`.
-2. Run `npm install`, `npm run build`, and `npm run check`.
-3. Deploy the frontend to Vercel over HTTPS.
-4. Test QR pairing and manual room pairing across iOS, Android, macOS, Windows,
-   and Linux.
-5. Test a large file, a canceled transfer, a receiver-side cancellation, and a
-   browser refresh during discovery.
-6. Use a new room code for each sensitive sharing session.
+- [ ] Deploy the Worker and verify its health endpoint.
+- [ ] Run `npm run check` and `npm run build`.
+- [ ] Deploy the frontend over HTTPS.
+- [ ] Test QR pairing and manual room pairing.
+- [ ] Test same-network pairing over Wi-Fi.
+- [ ] Test a phone-hotspot pairing.
+- [ ] Test a LAN/Ethernet pairing where available.
+- [ ] Test a large file and a queued multi-file transfer.
+- [ ] Test cancellation from both sides.
+- [ ] Test duplicate-file choices and Browser Downloads fallback.
+- [ ] Test a refresh during discovery and reconnect behavior.
+- [ ] Use a fresh room code for sensitive sharing sessions.
 
-## How discovery works
+## Project structure
 
-1. Each device belongs to a **4-digit room code** (OTP-style, e.g. `4821`) — stable, persisted, and editable.
-2. Pair two ways:
-   - **QR**: scan the on-page QR with any phone camera — it opens a device-specific link, joins the room, and automatically connects to the device that displayed the QR.
-   - **Code**: share the 4-digit code verbally; the other device taps the room chip and enters it.
-3. For a direct local transfer, keep both devices on the same local network:
-   shared Wi-Fi, a phone hotspot, or LAN/Ethernet. Devices in the same room can
-   still discover each other through the relay when they are on different
-   networks, but the actual route depends on browser and network conditions.
-4. Tapping a peer sends a connect request → accept → SDP/ICE flow over the WebSocket (~5 KB). QR connections use their device pairing token to skip the approval prompt.
-5. 4 parallel unordered data channels stream the file in 64 KB chunks straight to OPFS (disk) — RAM stays flat even for 10 GB+ files.
-6. On startup, AirLocal clears abandoned files from its origin-private OPFS storage so interrupted transfers do not accumulate locally.
+```text
+.
+├── src/
+│   ├── App.tsx              # React composition root
+│   ├── AppContent.tsx       # Application interface and information pages
+│   ├── airlocal.ts          # Discovery, pairing, and transfer engine
+│   ├── components/ui/       # Local shadcn-style UI primitives
+│   ├── custom.css           # Design tokens and application styles
+│   └── main.tsx             # Vite entry point
+├── worker/
+│   ├── worker.js            # Cloudflare Worker + Durable Object relay
+│   └── wrangler.toml        # Worker deployment configuration
+├── index.html               # Vite document shell
+├── vercel.json              # Vercel build and security headers
+├── package.json             # Scripts and dependencies
+└── vite.config.ts           # Vite configuration
+```
 
-## Testing locally against the tunnel
+## Citations
 
-The Worker must be deployed (or run `npx wrangler dev` and point `RELAY_URL` at `ws://localhost:8787`) before discovery shows peers — the static page alone has no relay.
+The application includes a research-style citations page covering WebRTC,
+RTCDataChannel, ICE, STUN, WebSockets, File System APIs, OPFS, IndexedDB,
+Network Information, Web Crypto, QRCode.js, Cloudflare Durable Objects,
+Lucide, Tailwind CSS, and Vercel. Open **Citations** in the app or review the
+references in [src/AppContent.tsx](./src/AppContent.tsx).
+
+## Contributing
+
+Issues and pull requests are welcome:
+
+1. Fork the repository.
+2. Create a focused branch.
+3. Make the smallest complete change.
+4. Run `npm run check`, `npm run build`, and `git diff --check`.
+5. Describe the user-visible behavior and validation in your pull request.
+
+Please avoid committing credentials, deployed secrets, local environment files,
+or generated build output.
+
+## License
+
+No license has been declared yet. Until a license is added to this repository,
+do not assume that the source code is available for unrestricted reuse.
+
+## Maintainer
+
+**Pulkit Pareek** · [GitHub](https://github.com/pulkitpareek18)

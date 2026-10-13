@@ -206,6 +206,41 @@
     }
     updateSaveLocationUI();
   }
+  function saveCategory(name) {
+    const extension = name.split('.').pop()?.toLowerCase() || '';
+    if (['jpg','jpeg','png','gif','webp','svg','heic','avif','bmp'].includes(extension)) return 'Images';
+    if (['mp4','mov','mkv','webm','avi','m4v','3gp'].includes(extension)) return 'Videos';
+    if (['mp3','wav','m4a','ogg','flac','aac'].includes(extension)) return 'Audio';
+    if (['ppt','pptx','key','odp'].includes(extension)) return 'Presentations';
+    if (['pdf','doc','docx','txt','rtf','xls','xlsx','csv','ods'].includes(extension)) return 'Documents';
+    if (['zip','rar','7z','tar','gz','bz2'].includes(extension)) return 'Archives';
+    return 'Other';
+  }
+  function safeFileName(name) {
+    return name.split(/[\\/]/).pop().replace(/[<>:"|?*\u0000-\u001f]/g, '_').trim() || 'received-file';
+  }
+  async function saveToSelectedDirectory(file, name) {
+    if (!saveDirectoryHandle || !saveDirectoryReady) return null;
+    try {
+      if ((await saveDirectoryHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('Folder permission expired');
+      const category = organizeByType() ? saveCategory(name) : null;
+      const directory = category
+        ? await saveDirectoryHandle.getDirectoryHandle(category, { create: true })
+        : saveDirectoryHandle;
+      const targetName = safeFileName(name);
+      const target = await directory.getFileHandle(targetName, { create: true });
+      const writable = await target.createWritable();
+      await writable.write(file);
+      await writable.close();
+      return { folder: category ? `${saveDirectoryHandle.name}/${category}` : saveDirectoryHandle.name, name: targetName };
+    } catch (error) {
+      saveDirectoryReady = false;
+      saveDirectoryHandle = null;
+      await saveDirectoryHandleToDb(null);
+      dbg('Custom save failed: ' + error.message);
+      return null;
+    }
+  }
   function dismissOnboarding() {
     localStorage.setItem('airlocal.onboarding.dismissed', '1');
     document.getElementById('onboardingCard')?.remove();
@@ -966,39 +1001,6 @@
     if (transfer.fileHandle) {
       try { (await navigator.storage.getDirectory()).removeEntry(transfer.name); } catch {}
     }
-    function saveCategory(name) {
-      const extension = name.split('.').pop()?.toLowerCase() || '';
-      if (['jpg','jpeg','png','gif','webp','svg','heic','avif','bmp'].includes(extension)) return 'Images';
-      if (['mp4','mov','mkv','webm','avi','m4v','3gp'].includes(extension)) return 'Videos';
-      if (['mp3','wav','m4a','ogg','flac','aac'].includes(extension)) return 'Audio';
-      if (['ppt','pptx','key','odp'].includes(extension)) return 'Presentations';
-      if (['pdf','doc','docx','txt','rtf','xls','xlsx','csv','ods'].includes(extension)) return 'Documents';
-      if (['zip','rar','7z','tar','gz','bz2'].includes(extension)) return 'Archives';
-      return 'Other';
-    }
-    function safeFileName(name) {
-      return name.split(/[\\/]/).pop().replace(/[<>:"|?*\u0000-\u001f]/g, '_').trim() || 'received-file';
-    }
-    async function saveToSelectedDirectory(file, name) {
-      if (!saveDirectoryHandle || !saveDirectoryReady) return false;
-      try {
-        if ((await saveDirectoryHandle.requestPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('Folder permission expired');
-        const directory = organizeByType()
-          ? await saveDirectoryHandle.getDirectoryHandle(saveCategory(name), { create: true })
-          : saveDirectoryHandle;
-        const target = await directory.getFileHandle(safeFileName(name), { create: true });
-        const writable = await target.createWritable();
-        await writable.write(file);
-        await writable.close();
-        return true;
-      } catch (error) {
-        saveDirectoryReady = false;
-        saveDirectoryHandle = null;
-        await saveDirectoryHandleToDb(null);
-        dbg('Custom save failed: ' + error.message);
-        return false;
-      }
-    }
   }
 
   async function clearStaleOpfsFiles() {
@@ -1118,7 +1120,13 @@
     finalizeTransferTelemetry(transfer);
     renderTransfers();
     log(`Saved: ${transfer.name}`, 'success');
-    showToast('Transfer complete', savedToFolder ? `${transfer.name} was saved to your selected folder.` : `${transfer.name} was downloaded by your browser.`, 'success');
+    showToast(
+      savedToFolder ? 'File saved successfully' : 'Transfer complete',
+      savedToFolder
+        ? `${savedToFolder.name} was stored in ${savedToFolder.folder}.`
+        : `${transfer.name} was downloaded by your browser.`,
+      'success'
+    );
     if (navigator.vibrate) navigator.vibrate(40);
   }
 

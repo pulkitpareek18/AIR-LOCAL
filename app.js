@@ -133,6 +133,12 @@
       showToast('Custom folders unavailable', 'This browser will use your normal Downloads folder.', 'warning');
       return;
     }
+    const confirmed = await requestConfirmation(
+      'Choose a save folder',
+      'AirLocal will ask your browser for permission to create folders and save received files in the folder you select.',
+      'Choose folder'
+    );
+    if (!confirmed) return;
     try {
       const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
       if (!handle) return;

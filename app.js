@@ -69,35 +69,14 @@
     if (/Linux/.test(ua)) return 'linux';
     return 'other';
   }
-  function connectionMode() {
-    const type = navigator.connection?.type;
-    if (type === 'wifi' || type === 'wimax') return 'Wi-Fi';
-    if (type === 'ethernet') return 'Ethernet';
-    if (type === 'cellular') return 'Cellular';
-    if (type === 'none' || !navigator.onLine) return 'Offline';
-    return 'Network';
-  }
   function updateConnectionMode() {
     const element = document.getElementById('networkMode');
-    const estimate = document.getElementById('networkEstimate');
     if (!element) return;
-    const connection = navigator.connection;
-    const mode = connectionMode();
-    const effectiveType = connection?.effectiveType;
-    const downlink = Number(connection?.downlink);
-    element.textContent = mode;
-    element.title = mode === 'Wi-Fi'
-      ? 'Connected over Wi-Fi. Browsers do not expose whether it is 2.4, 5, or 6 GHz.'
-      : 'Detected from browser network information when available.';
-    if (estimate) {
-      const details = [];
-      if (effectiveType) details.push(effectiveType.toUpperCase());
-      if (Number.isFinite(downlink) && downlink > 0) details.push(`~${downlink} Mbps down`);
-      estimate.textContent = details.length ? `· ${details.join(' · ')}` : '· speed unavailable';
-      estimate.title = details.length
-        ? 'Browser-provided estimate. This is not the maximum transmit speed.'
-        : 'This browser does not expose a connection speed estimate.';
-    }
+    const connected = Boolean(activePeer && pc);
+    element.textContent = connected ? 'Direct connection' : wsOpen ? 'Discovery' : 'Offline';
+    element.title = connected
+      ? 'Files travel directly between the connected browsers. The relay is used only for discovery and signaling.'
+      : 'AirLocal is looking for devices in this room.';
   }
   function iconFor(kind) {
     return { ios: 'smartphone', android: 'smartphone', windows: 'monitor', mac: 'laptop', linux: 'hard-drive' }[kind] || 'monitor';
@@ -851,7 +830,6 @@
   window.addEventListener('online', relayConnect);
   window.addEventListener('online', updateConnectionMode);
   window.addEventListener('offline', updateConnectionMode);
-  navigator.connection?.addEventListener('change', updateConnectionMode);
   window.addEventListener('focus', relayConnect);
 
   function relaySend(obj) {

@@ -20,6 +20,7 @@
       --popover-foreground: 0 0% 98%;
       --success: 142 38% 47%;
       --warning: 38 44% 52%;
+      --brand: 199 89% 58%;
       color-scheme: dark;
     }
     :root.light {
@@ -44,11 +45,17 @@
       --popover-foreground: 240 5.9% 10%;
       --success: 142 42% 35%;
       --warning: 38 48% 40%;
+      --brand: 199 82% 42%;
       color-scheme: light;
     }
     * { -webkit-tap-highlight-color: transparent; }
     html, body { overscroll-behavior-y: none; }
-    body { padding-bottom: env(safe-area-inset-bottom); }
+    body {
+      padding-bottom: env(safe-area-inset-bottom);
+      background:
+        radial-gradient(circle at 50% -10%, hsl(var(--brand) / .12), transparent 34rem),
+        hsl(var(--background));
+    }
     ::selection { background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -70,6 +77,48 @@
     .platform-badge-icon svg { display: block; height: 1rem; width: 1rem; }
     dialog { max-height: calc(100dvh - 2rem); overflow: auto; }
     button:disabled { cursor: not-allowed; opacity: .5; }
+    .app-header {
+      box-shadow: 0 1px 0 hsl(var(--border) / .8), 0 12px 32px hsl(0 0% 0% / .08);
+    }
+    .brand-mark {
+      background: linear-gradient(135deg, hsl(var(--brand)), hsl(262 83% 68%));
+      box-shadow: 0 6px 18px hsl(var(--brand) / .25);
+    }
+    .surface-card {
+      border-color: hsl(var(--border) / .8);
+      box-shadow: 0 8px 30px hsl(0 0% 0% / .08);
+      transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+    .surface-card:hover {
+      border-color: hsl(var(--brand) / .32);
+      box-shadow: 0 12px 36px hsl(0 0% 0% / .12);
+    }
+    .onboarding-card {
+      background: linear-gradient(135deg, hsl(var(--brand) / .12), hsl(var(--card)) 44%);
+      border-color: hsl(var(--brand) / .24);
+    }
+    .pair-card {
+      background: linear-gradient(180deg, hsl(var(--card)), hsl(var(--secondary) / .22));
+    }
+    .save-card {
+      background: hsl(var(--secondary) / .32);
+      border-color: hsl(var(--brand) / .18);
+    }
+    .drop-zone {
+      background:
+        radial-gradient(circle at 50% 0%, hsl(var(--brand) / .1), transparent 15rem),
+        hsl(var(--background) / .5);
+    }
+    .drop-zone:hover {
+      border-color: hsl(var(--brand) / .65);
+      background-color: hsl(var(--brand) / .06);
+    }
+    .section-heading {
+      letter-spacing: -.01em;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
     @media (max-width: 640px) {
       main.container { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
       #toastRegion { bottom: calc(1rem + env(safe-area-inset-bottom)); }

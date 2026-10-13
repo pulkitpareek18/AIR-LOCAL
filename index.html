@@ -320,29 +320,52 @@
 
       <section id="citations" class="mt-16 scroll-mt-24 border-t border-border pt-10">
         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Citations</p>
-        <h1 class="mt-3 text-3xl font-semibold tracking-tight">Technology and privacy references.</h1>
-        <p class="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">These primary references explain the browser and infrastructure capabilities AirLocal relies on.</p>
-        <div class="mt-7 space-y-3">
-          <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
-            <span><span class="block text-sm font-medium">WebRTC API · MDN Web Docs</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Peer-to-peer communication between browsers.</span></span>
-            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
-          </a>
-          <a href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_API" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
-            <span><span class="block text-sm font-medium">File System API · MDN Web Docs</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Browser-managed access to user-selected folders.</span></span>
-            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
-          </a>
-          <a href="https://developer.mozilla.org/en-US/docs/Web/API/Network_Information_API" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
-            <span><span class="block text-sm font-medium">Network Information API · MDN Web Docs</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Browser-reported connection categories such as Wi-Fi or Ethernet, when supported.</span></span>
-            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
-          </a>
-          <a href="https://developers.cloudflare.com/durable-objects/" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
-            <span><span class="block text-sm font-medium">Durable Objects · Cloudflare Docs</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Stateful coordination used by the AirLocal discovery relay.</span></span>
-            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
-          </a>
-          <a href="https://github.com/pulkitpareek18/AIR-LOCAL" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
-            <span><span class="block text-sm font-medium">AirLocal source code · GitHub</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Implementation, deployment configuration, and project documentation.</span></span>
-            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
-          </a>
+        <h1 class="mt-3 text-3xl font-semibold tracking-tight">Technical references.</h1>
+        <p class="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">A numbered bibliography for the protocols, browser APIs, libraries, and deployment services used by AirLocal. Links point to primary specifications, official documentation, or original project source.</p>
+        <p class="mt-3 text-[11px] text-muted-foreground">References verified for this release · 13 October 2026</p>
+        <div class="mt-8 space-y-8">
+          <div>
+            <h2 class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Communication and transport</h2>
+            <ol class="mt-3 space-y-3">
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://www.w3.org/TR/webrtc/" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[1] W3C, “WebRTC 1.0: Real-Time Communication Between Browsers.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Browser connection and data transport model.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[2] MDN Web Docs, “RTCDataChannel.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Data channels used for file chunks and transfer controls.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://www.rfc-editor.org/rfc/rfc8445" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[3] IETF RFC 8445, “Interactive Connectivity Establishment (ICE).”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Candidate gathering and connectivity checks.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://www.rfc-editor.org/rfc/rfc8489" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[4] IETF RFC 8489, “Session Traversal Utilities for NAT (STUN).”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Network address discovery reference for the configured STUN service.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSocket" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[5] MDN Web Docs, “WebSocket.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Persistent relay connection for presence and signaling.</p></li>
+            </ol>
+          </div>
+          <div>
+            <h2 class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Browser storage and device APIs</h2>
+            <ol start="6" class="mt-3 space-y-3">
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_API" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[6] MDN Web Docs, “File System API.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">User-selected folders, directory handles, and file creation.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://fs.spec.whatwg.org/" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[7] WHATWG, “File System Standard.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Normative reference for browser file and directory handles.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Origin_private_file_system" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[8] MDN Web Docs, “Origin Private File System.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Temporary staging and cleanup of interrupted transfers.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[9] MDN Web Docs, “IndexedDB API.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Persistence for the selected directory handle.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Network_Information_API" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[10] MDN Web Docs, “Network Information API.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Browser-reported Wi-Fi, Ethernet, or cellular categories; frequency bands are not reliably exposed.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[11] MDN Web Docs, “Web Crypto API.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Secure random identifiers for browser sessions.</p></li>
+            </ol>
+          </div>
+          <div>
+            <h2 class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Pairing, relay, and presentation</h2>
+            <ol start="12" class="mt-3 space-y-3">
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://github.com/davidshimjs/qrcodejs" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[12] David Shim, “QRCode.js.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">QR generation library used for scan-to-connect URLs.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://developers.cloudflare.com/durable-objects/" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[13] Cloudflare, “Durable Objects Documentation.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Stateful room coordination for discovery and signaling.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://developers.cloudflare.com/durable-objects/api/websockets/" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[14] Cloudflare, “WebSockets in Durable Objects.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Relay WebSocket lifecycle and hibernation behavior.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://lucide.dev/" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[15] Lucide, “Lucide Icons.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Interface icon library used in the application.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://tailwindcss.com/docs" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[16] Tailwind CSS, “Documentation.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Utility CSS framework used to compile the static interface.</p></li>
+            </ol>
+          </div>
+          <div>
+            <h2 class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Deployment and implementation</h2>
+            <ol start="17" class="mt-3 space-y-3">
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://vercel.com/docs/deployments/overview" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[17] Vercel, “Deployments Overview.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Hosting reference for the static frontend and generated assets.</p></li>
+              <li class="rounded-lg border border-border bg-card p-4 shadow-sm"><a href="https://github.com/pulkitpareek18/AIR-LOCAL" target="_blank" rel="noopener noreferrer" class="text-sm font-medium hover:underline">[18] Pulkit Pareek, “AirLocal Source Repository.”</a><p class="mt-1 text-xs leading-5 text-muted-foreground">Project source, relay implementation, deployment configuration, and release documentation.</p></li>
+            </ol>
+          </div>
+        </div>
+        <div class="mt-8 rounded-lg border border-border bg-secondary/30 p-4 text-xs leading-5 text-muted-foreground">
+          <p class="font-medium text-foreground">Scope note</p>
+          <p class="mt-1">Citations document the technologies and standards used by this application. They do not imply endorsement. Browser support and permission behavior vary by browser, operating system, and privacy settings.</p>
         </div>
       </section>
     </div>

@@ -164,6 +164,23 @@ npx vercel --prod
 directory. Add a custom domain from the Vercel project settings. A `js.org`
 subdomain is configured through the js.org CNAME mapping process.
 
+### GitHub Pages
+
+GitHub Pages deployment is configured in
+`.github/workflows/deploy-pages.yml`. Every push to `main` runs the project
+checks, builds the Vite frontend, preserves the hash-based application routes,
+and publishes the `dist/` directory through GitHub Pages.
+
+The expected project URL is:
+
+```text
+https://pulkitpareek18.github.io/AIR-LOCAL/
+```
+
+To enable it manually, open the repository's **Settings → Pages** and select
+**GitHub Actions** as the source. The workflow then deploys automatically on
+future pushes to `main`.
+
 ## Privacy model
 
 - File bytes are transferred by WebRTC between the connected browsers.

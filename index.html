@@ -33,6 +33,10 @@
         <span class="text-sm font-semibold tracking-tight">AirLocal</span>
       </div>
       <div class="flex items-center gap-2">
+        <nav class="hidden items-center gap-1 text-xs font-medium text-muted-foreground sm:flex" aria-label="Information">
+          <a href="#how-it-works" class="rounded-md px-2.5 py-1.5 transition-colors hover:bg-accent hover:text-foreground">How it works</a>
+          <a href="#citations" class="rounded-md px-2.5 py-1.5 transition-colors hover:bg-accent hover:text-foreground">Citations</a>
+        </nav>
         <button onclick="toggleSettings()" aria-label="Open settings" title="Settings" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
           <i data-lucide="settings-2" class="h-4 w-4"></i>
         </button>
@@ -52,7 +56,7 @@
     </div>
   </header>
 
-  <main class="container flex-1 flex flex-col gap-4 py-6">
+  <main id="appMain" class="container flex-1 flex flex-col gap-4 py-6">
     <div id="reconnectBanner" class="hidden items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm" role="status">
       <div class="flex min-w-0 items-start gap-2.5">
         <i data-lucide="wifi-off" class="mt-0.5 h-4 w-4 shrink-0 text-warning"></i>
@@ -270,6 +274,72 @@
 
     <!-- mobile diagnostic overlay: triple-tap the header to toggle -->
     <pre id="dbgOverlay" class="hidden fixed bottom-0 left-0 right-0 z-50 m-2 max-h-40 overflow-auto rounded-md border border-border bg-popover/95 p-3 font-mono text-[10px] leading-relaxed text-muted-foreground backdrop-blur custom-scrollbar"></pre>
+  </main>
+
+  <main id="infoMain" class="container hidden flex-1 py-8 sm:py-12">
+    <div class="mx-auto max-w-3xl">
+      <a href="#" class="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+        <i data-lucide="arrow-left" class="h-3.5 w-3.5"></i>
+        Back to AirLocal
+      </a>
+      <section id="how-it-works" class="mt-6 scroll-mt-24">
+        <div class="max-w-2xl">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">How it works</p>
+          <h1 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Move files directly between your devices.</h1>
+          <p class="mt-4 text-sm leading-6 text-muted-foreground sm:text-base">AirLocal creates a private connection between browsers. The relay helps devices discover each other, then the file data travels directly between the two devices.</p>
+        </div>
+        <div class="mt-8 grid gap-3 sm:grid-cols-3">
+          <article class="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <div class="flex h-9 w-9 items-center justify-center rounded-md bg-secondary"><i data-lucide="scan-line" class="h-4 w-4"></i></div>
+            <h2 class="mt-4 text-sm font-semibold">1. Pair</h2>
+            <p class="mt-2 text-xs leading-5 text-muted-foreground">Scan the QR code to connect automatically, or open AirLocal on both devices and enter the same room code.</p>
+          </article>
+          <article class="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <div class="flex h-9 w-9 items-center justify-center rounded-md bg-secondary"><i data-lucide="file-up" class="h-4 w-4"></i></div>
+            <h2 class="mt-4 text-sm font-semibold">2. Choose</h2>
+            <p class="mt-2 text-xs leading-5 text-muted-foreground">Select files or drop them into the send area. AirLocal keeps the transfer in your browser and does not upload the files.</p>
+          </article>
+          <article class="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <div class="flex h-9 w-9 items-center justify-center rounded-md bg-secondary"><i data-lucide="arrow-down-to-line" class="h-4 w-4"></i></div>
+            <h2 class="mt-4 text-sm font-semibold">3. Receive</h2>
+            <p class="mt-2 text-xs leading-5 text-muted-foreground">The receiving device saves the files to Downloads or to the selected custom folder, including optional backup organization.</p>
+          </article>
+        </div>
+        <div class="mt-8 rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div class="flex items-start gap-3">
+            <i data-lucide="shield-check" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"></i>
+            <div>
+              <h2 class="text-sm font-semibold">What the relay does</h2>
+              <p class="mt-2 text-xs leading-5 text-muted-foreground">The Cloudflare relay coordinates room presence and WebRTC signaling only. It does not receive, store, or inspect transferred file contents. If a direct peer connection cannot be established, AirLocal does not silently upload files to the relay.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="citations" class="mt-16 scroll-mt-24 border-t border-border pt-10">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Citations</p>
+        <h1 class="mt-3 text-3xl font-semibold tracking-tight">Technology and privacy references.</h1>
+        <p class="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">These primary references explain the browser and infrastructure capabilities AirLocal relies on.</p>
+        <div class="mt-7 space-y-3">
+          <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
+            <span><span class="block text-sm font-medium">WebRTC API · MDN Web Docs</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Peer-to-peer communication between browsers.</span></span>
+            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
+          </a>
+          <a href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_API" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
+            <span><span class="block text-sm font-medium">File System API · MDN Web Docs</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Browser-managed access to user-selected folders.</span></span>
+            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
+          </a>
+          <a href="https://developers.cloudflare.com/durable-objects/" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
+            <span><span class="block text-sm font-medium">Durable Objects · Cloudflare Docs</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Stateful coordination used by the AirLocal discovery relay.</span></span>
+            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
+          </a>
+          <a href="https://github.com/pulkitpareek18/AIR-LOCAL" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
+            <span><span class="block text-sm font-medium">AirLocal source code · GitHub</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Implementation, deployment configuration, and project documentation.</span></span>
+            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
+          </a>
+        </div>
+      </section>
+    </div>
   </main>
 
   <!-- ── Incoming connection dialog (shadcn AlertDialog-styled) ── -->

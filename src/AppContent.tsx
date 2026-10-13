@@ -109,7 +109,7 @@ export function AppContent() {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <p id="selfName" className="text-sm font-medium leading-none truncate">…</p>
+              <p id="selfName" className="text-sm font-medium leading-tight truncate">…</p>
               <button onClick={() => { (window as any).renameSelf() }} className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" title="Rename device">
                 <i data-lucide="pencil" className="h-3 w-3"></i>
               </button>

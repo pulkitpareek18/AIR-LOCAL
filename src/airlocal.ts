@@ -20,6 +20,7 @@
   const LARGE_FILE_BYTES = 10 * 1024 * 1024 * 1024;
   const LARGE_QUEUE_BYTES = 25 * 1024 * 1024 * 1024;
   const PROTO_VER = 1;
+  const OPFS_TRANSFER_DIR = '.airlocal-transfers';
   const SESSION_ID = crypto.randomUUID();
   const ICE_SERVERS = [{ urls: ['stun:stun.l.google.com:19302'] }];
 
@@ -131,7 +132,7 @@
     return localStorage.getItem('airlocal.organize-files') !== '0';
   }
   function backupMode() {
-    return localStorage.getItem('airlocal.backup-mode') === '1';
+    return saveDirectoryReady && localStorage.getItem('airlocal.backup-mode') === '1';
   }
   function backupNamingConvention() {
     return localStorage.getItem('airlocal.backup-naming') || '{date}/{time}';
@@ -149,6 +150,12 @@
     return parts.length ? parts.join('/') : 'Backup';
   }
   function setBackupMode(value) {
+    if (value && !saveDirectoryReady) {
+      localStorage.setItem('airlocal.backup-mode', '0');
+      updateSaveLocationUI();
+      showToast('Choose a save folder first', 'Backup mode requires permission to create folders in a selected location.', 'warning');
+      return;
+    }
     localStorage.setItem('airlocal.backup-mode', value ? '1' : '0');
     backupSessionDirectory = null;
     backupSessionPath = '';
@@ -185,7 +192,19 @@
     if (mainPath) mainPath.textContent = relativePath;
     if (organize) organize.checked = organizeByType();
     const backup = document.getElementById('backupMode');
-    if (backup) backup.checked = backupMode();
+    if (backup) {
+      backup.checked = backupMode();
+      backup.disabled = !saveDirectoryReady;
+      backup.title = saveDirectoryReady
+        ? 'Create a new backup folder for each connection.'
+        : 'Choose a save folder before enabling backup mode.';
+    }
+    const backupDescription = document.getElementById('backupModeDescription');
+    if (backupDescription) {
+      backupDescription.textContent = saveDirectoryReady
+        ? 'Each connection creates a new date-and-time folder so daily backups never overwrite earlier sessions.'
+        : 'Choose a save folder first. Backup mode is unavailable when files use browser downloads.';
+    }
     const naming = document.getElementById('backupNaming');
     if (naming && document.activeElement !== naming) naming.value = backupNamingConvention();
     const namingPreview = document.getElementById('backupNamingPreview');
@@ -231,6 +250,7 @@
     backupSessionDirectory = null;
     backupSessionPath = '';
     overwritePolicy = null;
+    localStorage.setItem('airlocal.backup-mode', '0');
     await saveDirectoryHandleToDb(null);
     updateSaveLocationUI();
     showToast('Save folder cleared', 'Received files will use browser downloads.', 'success');
@@ -295,6 +315,8 @@
         backupSessionDirectory = null;
         backupSessionPath = '';
         overwritePolicy = null;
+      } else {
+        localStorage.setItem('airlocal.backup-mode', '0');
       }
     } catch (error) {
       dbg('Save folder restore failed: ' + error.message);
@@ -404,6 +426,7 @@
     } catch (error) {
       saveDirectoryReady = false;
       saveDirectoryHandle = null;
+      localStorage.setItem('airlocal.backup-mode', '0');
       await saveDirectoryHandleToDb(null);
       dbg('Custom save failed: ' + error.message);
       return null;
@@ -1186,21 +1209,7 @@
   async function discardReceiveTransfer(transfer) {
     try { if (transfer.writable) await transfer.writable.abort(); } catch {}
     if (transfer.fileHandle) {
-      try { (await navigator.storage.getDirectory()).removeEntry(transfer.name); } catch {}
-    }
-  }
-
-  async function clearStaleOpfsFiles() {
-    if (!window.isSecureContext || !navigator.storage?.getDirectory) return;
-    try {
-      const root = await navigator.storage.getDirectory();
-      for await (const entry of root.values()) {
-        await root.removeEntry(entry.name, { recursive: entry.kind === 'directory' });
-      }
-      dbg('OPFS stale transfer files cleared');
-    } catch (err) {
-      dbg('OPFS cleanup failed: ' + (err.message || err));
-      log(`Could not clear stale local transfer files: ${err.message || err}`, 'error');
+      try { await transfer.tempDirectory.removeEntry(transfer.name); } catch {}
     }
   }
 
@@ -1212,7 +1221,7 @@
         const id = String(msg.transferId);
         if (receiveTransfers.has(id)) return;
         const now = performance.now();
-        const transfer = { id, direction: 'receive', name: msg.name, size: msg.size, progress: 0, speed: 0, startedAt: now, lastSampleTime: now, lastSampleBytes: 0, lastRenderTime: 0, status: 'active', writable: null, fileHandle: null, pending: [], endReceived: false, initializing: true };
+        const transfer = { id, direction: 'receive', name: msg.name, size: msg.size, progress: 0, speed: 0, startedAt: now, lastSampleTime: now, lastSampleBytes: 0, lastRenderTime: 0, status: 'active', writable: null, fileHandle: null, tempDirectory: null, pending: [], endReceived: false, initializing: true };
         receiveTransfers.set(id, transfer);
         renderTransfers();
         log(`Inbound: ${msg.name} (${fmtMB(msg.size)})`);
@@ -1221,7 +1230,9 @@
             throw new Error('HTTPS required for disk streaming.');
           }
           const root = await navigator.storage.getDirectory();
-          transfer.fileHandle = await root.getFileHandle(msg.name, { create: true });
+          const transferRoot = await root.getDirectoryHandle(OPFS_TRANSFER_DIR, { create: true });
+          transfer.tempDirectory = await transferRoot.getDirectoryHandle(SESSION_ID, { create: true });
+          transfer.fileHandle = await transfer.tempDirectory.getFileHandle(msg.name, { create: true });
           transfer.writable = await transfer.fileHandle.createWritable({ keepExistingData: false });
           sendTransferControl('READY', id);
           for (const chunk of transfer.pending.splice(0)) {
@@ -1296,7 +1307,7 @@
         transfer.status = 'stopped';
         renderTransfers();
         showToast('File skipped', `${savedToFolder.name} was not saved because it already exists.`, 'warning');
-        try { (await navigator.storage.getDirectory()).removeEntry(transfer.name); } catch {}
+        try { await transfer.tempDirectory.removeEntry(transfer.name); } catch {}
         return;
       }
       const url = URL.createObjectURL(file);
@@ -1307,7 +1318,7 @@
     }
     const name = transfer.name;
     setTimeout(async () => {
-      try { (await navigator.storage.getDirectory()).removeEntry(name); } catch {}
+      try { await transfer.tempDirectory.removeEntry(name); } catch {}
     }, 30000);
     transfer.progress = transfer.size;
     transfer.status = 'complete';
@@ -1581,13 +1592,18 @@
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (currentTheme() === 'device') applyTheme('device');
     });
-    await clearStaleOpfsFiles();
     lucide.createIcons();
     document.getElementById('confirmDialog').addEventListener('close', () => {
       if (!pendingConfirmation) return;
       const { resolve } = pendingConfirmation;
       pendingConfirmation = null;
       resolve(false);
+    });
+    document.getElementById('incomingDialog').addEventListener('close', () => {
+      if (!pendingIncoming) return;
+      const { from } = pendingIncoming;
+      pendingIncoming = null;
+      signal(from, { t: 'connect-decline' });
     });
     document.getElementById('overwriteDialog').addEventListener('close', () => {
       if (pendingOverwrite) resolveOverwrite('skip');
@@ -1644,6 +1660,12 @@
   window.addEventListener('pagehide', () => {
     if (activePeer) signal(activePeer, { t: 'hangup' });
     relaySend({ v: PROTO_VER, type: 'leave', sid: SESSION_ID });
+    navigator.storage?.getDirectory?.().then(async root => {
+      try {
+        const transferRoot = await root.getDirectoryHandle(OPFS_TRANSFER_DIR);
+        await transferRoot.removeEntry(SESSION_ID, { recursive: true });
+      } catch {}
+    });
   });
 
 // The shell intentionally keeps a few inline handlers for the transfer controls.

@@ -66,6 +66,19 @@ larger transfers when the user confirms and the receiving device has enough
 available storage. Actual transfer size and speed depend on the devices,
 browser, network path, and available storage.
 
+## Save locations
+
+On browsers that support the File System Access API, the receiver can choose a
+custom save folder from Settings. AirLocal can organize completed files into
+`Images`, `Videos`, `Audio`, `Documents`, `Presentations`, `Archives`, and
+`Other` subfolders. The folder permission is remembered when the browser allows
+it.
+
+If folder access is unavailable, permission is declined, or the permission
+expires, AirLocal automatically falls back to the browser's normal Downloads
+behavior. iOS Safari and some Firefox/private-browsing configurations
+typically use this fallback.
+
 ## Production release checklist
 
 Before sharing a public URL:

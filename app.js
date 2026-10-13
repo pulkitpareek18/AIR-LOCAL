@@ -52,6 +52,8 @@
   let pendingConfirmation = null;
   let pendingInput = null;
   let toastTimer = null;
+  let saveDirectoryHandle = null;
+  let saveDirectoryReady = false;
 
   // ---------- Utils ----------
   function detectKind() {
@@ -110,6 +112,93 @@
     localStorage.setItem('airlocal.theme', preference);
     applyTheme(preference);
     showToast('Theme updated', preference === 'device' ? 'Following your device setting.' : `${preference[0].toUpperCase()}${preference.slice(1)} theme enabled.`, 'success');
+  }
+  function organizeByType() {
+    return localStorage.getItem('airlocal.organize-files') !== '0';
+  }
+  function setOrganizeByType(value) {
+    localStorage.setItem('airlocal.organize-files', value ? '1' : '0');
+    updateSaveLocationUI();
+  }
+  function updateSaveLocationUI() {
+    const name = document.getElementById('saveLocationName');
+    const organize = document.getElementById('organizeFiles');
+    if (name) name.textContent = saveDirectoryReady
+      ? `${saveDirectoryHandle.name}${organizeByType() ? ' · organized by type' : ''}`
+      : 'Browser Downloads (fallback)';
+    if (organize) organize.checked = organizeByType();
+  }
+  async function chooseSaveDirectory() {
+    if (!window.showDirectoryPicker) {
+      showToast('Custom folders unavailable', 'This browser will use your normal Downloads folder.', 'warning');
+      return;
+    }
+    try {
+      const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      if (!handle) return;
+      if ((await handle.requestPermission({ mode: 'readwrite' })) !== 'granted') {
+        showToast('Folder access declined', 'Received files will use browser downloads.', 'warning');
+        return;
+      }
+      saveDirectoryHandle = handle;
+      saveDirectoryReady = true;
+      await saveDirectoryHandleToDb(handle);
+      updateSaveLocationUI();
+      showToast('Save folder updated', `Received files will be saved in ${handle.name}.`, 'success');
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        saveDirectoryHandle = null;
+        saveDirectoryReady = false;
+        updateSaveLocationUI();
+        showToast('Could not use that folder', 'Browser downloads will be used instead.', 'warning');
+      }
+    }
+  }
+  async function clearSaveDirectory() {
+    saveDirectoryHandle = null;
+    saveDirectoryReady = false;
+    await saveDirectoryHandleToDb(null);
+    updateSaveLocationUI();
+    showToast('Save folder cleared', 'Received files will use browser downloads.', 'success');
+  }
+  function saveDirectoryDb() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('airlocal-settings', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('settings');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+  async function saveDirectoryHandleToDb(handle) {
+    try {
+      const db = await saveDirectoryDb();
+      await new Promise((resolve, reject) => {
+        const request = db.transaction('settings', 'readwrite').objectStore('settings').put(handle, 'save-directory');
+        request.onsuccess = resolve;
+        request.onerror = () => reject(request.error);
+      });
+      db.close();
+    } catch (error) {
+      dbg('Save folder persistence failed: ' + error.message);
+    }
+  }
+  async function restoreSaveDirectory() {
+    try {
+      const db = await saveDirectoryDb();
+      const handle = await new Promise((resolve, reject) => {
+        const request = db.transaction('settings', 'readonly').objectStore('settings').get('save-directory');
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+      db.close();
+      if (handle && (await handle.queryPermission({ mode: 'readwrite' })) === 'granted') {
+        saveDirectoryHandle = handle;
+        saveDirectoryReady = true;
+      }
+    } catch (error) {
+      dbg('Save folder restore failed: ' + error.message);
+    }
+    updateSaveLocationUI();
   }
   function dismissOnboarding() {
     localStorage.setItem('airlocal.onboarding.dismissed', '1');
@@ -871,6 +960,39 @@
     if (transfer.fileHandle) {
       try { (await navigator.storage.getDirectory()).removeEntry(transfer.name); } catch {}
     }
+    function saveCategory(name) {
+      const extension = name.split('.').pop()?.toLowerCase() || '';
+      if (['jpg','jpeg','png','gif','webp','svg','heic','avif','bmp'].includes(extension)) return 'Images';
+      if (['mp4','mov','mkv','webm','avi','m4v','3gp'].includes(extension)) return 'Videos';
+      if (['mp3','wav','m4a','ogg','flac','aac'].includes(extension)) return 'Audio';
+      if (['ppt','pptx','key','odp'].includes(extension)) return 'Presentations';
+      if (['pdf','doc','docx','txt','rtf','xls','xlsx','csv','ods'].includes(extension)) return 'Documents';
+      if (['zip','rar','7z','tar','gz','bz2'].includes(extension)) return 'Archives';
+      return 'Other';
+    }
+    function safeFileName(name) {
+      return name.split(/[\\/]/).pop().replace(/[<>:"|?*\u0000-\u001f]/g, '_').trim() || 'received-file';
+    }
+    async function saveToSelectedDirectory(file, name) {
+      if (!saveDirectoryHandle || !saveDirectoryReady) return false;
+      try {
+        if ((await saveDirectoryHandle.requestPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('Folder permission expired');
+        const directory = organizeByType()
+          ? await saveDirectoryHandle.getDirectoryHandle(saveCategory(name), { create: true })
+          : saveDirectoryHandle;
+        const target = await directory.getFileHandle(safeFileName(name), { create: true });
+        const writable = await target.createWritable();
+        await writable.write(file);
+        await writable.close();
+        return true;
+      } catch (error) {
+        saveDirectoryReady = false;
+        saveDirectoryHandle = null;
+        await saveDirectoryHandleToDb(null);
+        dbg('Custom save failed: ' + error.message);
+        return false;
+      }
+    }
   }
 
   async function clearStaleOpfsFiles() {
@@ -973,13 +1095,16 @@
     await transfer.writable.close();
     transfer.writable = null;
     const file = await transfer.fileHandle.getFile();
-    const url = URL.createObjectURL(file);
-    const a = document.createElement('a');
-    a.href = url; a.download = transfer.name;
-    document.body.appendChild(a); a.click(); a.remove();
+    const savedToFolder = await saveToSelectedDirectory(file, transfer.name);
+    if (!savedToFolder) {
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url; a.download = safeFileName(transfer.name);
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    }
     const name = transfer.name;
     setTimeout(async () => {
-      URL.revokeObjectURL(url);
       try { (await navigator.storage.getDirectory()).removeEntry(name); } catch {}
     }, 30000);
     transfer.progress = transfer.size;
@@ -987,7 +1112,7 @@
     finalizeTransferTelemetry(transfer);
     renderTransfers();
     log(`Saved: ${transfer.name}`, 'success');
-    showToast('Transfer complete', `${transfer.name} was saved successfully.`, 'success');
+    showToast('Transfer complete', savedToFolder ? `${transfer.name} was saved to your selected folder.` : `${transfer.name} was downloaded by your browser.`, 'success');
     if (navigator.vibrate) navigator.vibrate(40);
   }
 
@@ -1241,6 +1366,7 @@
   window.addEventListener('DOMContentLoaded', async () => {
     applyTheme(currentTheme());
     checkBrowserSupport();
+    await restoreSaveDirectory();
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (currentTheme() === 'device') applyTheme('device');
     });

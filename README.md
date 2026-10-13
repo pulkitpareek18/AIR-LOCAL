@@ -46,10 +46,10 @@ AirLocal gives every modern browser a simple local file-sharing workflow.
 - **Control where received files go** — Downloads fallback, selected folders,
   organization by file type, duplicate handling, and optional backup folders.
 
-> **Important:** The best direct-transfer path requires both devices to be on
-> the same local network. That can be shared Wi-Fi, a phone hotspot, or a
-> LAN/Ethernet connection. On that path, file data stays local and does not
-> use your internet data.
+> **Important:** Both devices must be on the same local network. Use shared
+> Wi-Fi, a phone hotspot, or a LAN/Ethernet connection. If the devices are on
+> different networks, AirLocal will not transfer files. File transfer never
+> uses mobile data.
 
 ## How it works
 

@@ -847,7 +847,7 @@
     const description = document.getElementById('emptyStateDescription');
     if (title && !roster.filter(p => p.sid !== SESSION_ID).length) {
       title.textContent = wsOpen ? 'No other devices found' : 'Looking for devices…';
-      description.textContent = wsOpen ? 'Scan this device’s QR code with your phone to connect automatically, or open AirLocal on another device and use the same room code.' : 'Connecting to the discovery service…';
+      description.textContent = wsOpen ? 'Scan the QR code to connect, or open AirLocal and enter the same room code.' : 'Connecting to the discovery service…';
     }
     if (qrTargetSid && !qrConnectionStarted && peers.has(qrTargetSid)) {
       qrConnectionStarted = true;

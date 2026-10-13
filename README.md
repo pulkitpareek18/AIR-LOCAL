@@ -1,6 +1,6 @@
 # AirLocal
 
-AirDrop-style file sharing for any device. For a direct local transfer, open the link on two devices on the same Wi-Fi, or connect one device to the other’s phone hotspot. They discover each other automatically, tap to connect, and files stream directly device-to-device over WebRTC. Nothing is uploaded to any server.
+AirDrop-style file sharing for any device. For a direct local transfer, open the link on two devices on the same Wi-Fi, or connect one device to the other’s phone hotspot. They discover each other automatically, tap to connect, and files stream directly device-to-device over WebRTC. File bytes stay on the local connection, so they do not use your internet data or get uploaded to any server.
 
 ## Architecture (why it costs ₹0)
 
@@ -46,6 +46,9 @@ The production frontend uses Vite's compiled React/TypeScript bundle, local shad
 
 - File bytes never pass through the Worker or Vercel; WebRTC carries them directly
   between browsers.
+- On the same Wi-Fi or phone hotspot, the file transfer uses the local network
+  rather than your internet connection. Only lightweight discovery and signaling
+  messages use the relay.
 - The Worker handles only room presence, WebRTC signaling, and transfer-control
   fallback messages.
 - Room codes are discovery identifiers, not passwords. Anyone who knows a room

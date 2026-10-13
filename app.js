@@ -15,9 +15,9 @@
   const NUM_CHANNELS = 4;
   const BUFFER_HIGH = 4 * 1024 * 1024;
   const BUFFER_LOW = 1 * 1024 * 1024;
-  const MAX_QUEUE_FILES = 100;
-  const MAX_FILE_BYTES = 10 * 1024 * 1024 * 1024;
-  const MAX_QUEUE_BYTES = 25 * 1024 * 1024 * 1024;
+  const LARGE_QUEUE_FILES = 100;
+  const LARGE_FILE_BYTES = 10 * 1024 * 1024 * 1024;
+  const LARGE_QUEUE_BYTES = 25 * 1024 * 1024 * 1024;
   const PROTO_VER = 1;
   const SESSION_ID = crypto.randomUUID();
   const ICE_SERVERS = [{ urls: ['stun:stun.l.google.com:19302'] }];
@@ -1187,26 +1187,45 @@
     });
   }
 
-  function stageFiles(files) {
+  async function stageFiles(files) {
     if (!files.length) return;
     const queuedPaths = new Set(stagedFiles.map(filePath));
     let queuedBytes = stagedFiles.reduce((sum, file) => sum + file.size, 0);
     const additions = [];
     const duplicates = [];
-    const rejected = [];
     for (const file of files) {
       const path = filePath(file);
       if (queuedPaths.has(path)) {
         duplicates.push(path);
         continue;
       }
-      if (file.size > MAX_FILE_BYTES || additions.length + stagedFiles.length >= MAX_QUEUE_FILES || queuedBytes + file.size > MAX_QUEUE_BYTES) {
-        rejected.push(path);
-        continue;
-      }
       queuedPaths.add(path);
       additions.push(file);
       queuedBytes += file.size;
+    }
+    if (!additions.length) {
+      if (duplicates.length) {
+        const uniqueDuplicates = [...new Set(duplicates)];
+        uniqueDuplicates.forEach(path => log(`Already added to send queue: ${path}`, 'error'));
+        showQueueDuplicateAlert(uniqueDuplicates);
+        showToast('Already added to queue', `${uniqueDuplicates.length} duplicate ${uniqueDuplicates.length === 1 ? 'file was' : 'files were'} skipped.`, 'warning');
+      }
+      return;
+    }
+    const totalFiles = stagedFiles.length + additions.length;
+    const totalBytes = queuedBytes;
+    const largeFiles = additions.filter(file => file.size > LARGE_FILE_BYTES).length;
+    if (totalFiles > LARGE_QUEUE_FILES || totalBytes > LARGE_QUEUE_BYTES || largeFiles) {
+      const reasons = [];
+      if (totalFiles > LARGE_QUEUE_FILES) reasons.push(`${totalFiles} files`);
+      if (totalBytes > LARGE_QUEUE_BYTES) reasons.push(`${fmtMB(totalBytes)} total`);
+      if (largeFiles) reasons.push(`${largeFiles} file${largeFiles === 1 ? '' : 's'} over 10 GB`);
+      const confirmed = await requestConfirmation(
+        'This is a large queue',
+        `${reasons.join(' · ')}.\n\nLarge transfers may take longer and need enough free storage on the receiving device. Continue adding these files?`,
+        'Continue'
+      );
+      if (!confirmed) return;
     }
     stagedFiles = [...stagedFiles, ...additions];
     renderStagedQueue();
@@ -1215,10 +1234,6 @@
       uniqueDuplicates.forEach(path => log(`Already added to send queue: ${path}`, 'error'));
       showQueueDuplicateAlert(uniqueDuplicates);
       showToast('Already added to queue', `${uniqueDuplicates.length} duplicate ${uniqueDuplicates.length === 1 ? 'file was' : 'files were'} skipped.`, 'warning');
-    }
-    if (rejected.length) {
-      log(`Queue limits blocked: ${rejected.join(', ')}`, 'error');
-      showToast('Queue limit reached', 'Up to 100 files, 25 GB total, and 10 GB per file are supported.', 'warning');
     }
   }
 

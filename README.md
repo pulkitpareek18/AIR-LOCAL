@@ -60,10 +60,11 @@ AirLocal requires HTTPS, WebRTC, WebSockets, and Origin Private File System
 (OPFS). Use a current Chrome, Edge, Safari, or Firefox release. Private browsing
 or managed browsers may disable OPFS.
 
-The send queue accepts up to 100 files, 25 GB total, and 10 GB per file. These
-limits protect the browser from accidental memory and storage exhaustion. Actual
-transfer size and speed depend on the devices, browser, network path, and
-available storage.
+Queues over 100 files, 25 GB total, or 10 GB per file show a confirmation
+warning rather than being blocked. This keeps normal use safe while allowing
+larger transfers when the user confirms and the receiving device has enough
+available storage. Actual transfer size and speed depend on the devices,
+browser, network path, and available storage.
 
 ## Production release checklist
 

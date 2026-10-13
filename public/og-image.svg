@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">AirLocal — AirDrop for Android and every device</title>
+  <desc id="description">Private, direct file sharing between devices on the same network.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#09090b"/>
+      <stop offset="1" stop-color="#18181b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fafafa"/>
+      <stop offset="1" stop-color="#a1a1aa"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="24" result="blur"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#background)"/>
+  <circle cx="1010" cy="90" r="170" fill="#52525b" opacity=".16" filter="url(#glow)"/>
+  <circle cx="180" cy="570" r="190" fill="#71717a" opacity=".11" filter="url(#glow)"/>
+  <path d="M0 544C230 472 336 602 580 535s388-73 620 13v82H0z" fill="#27272a" opacity=".48"/>
+  <g transform="translate(104 112)">
+    <rect width="68" height="68" rx="18" fill="url(#accent)"/>
+    <path d="m27 20-13 14 13 14M14 34h39M41 48l13-14-13-14M54 34H29" fill="none" stroke="#18181b" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/>
+  </g>
+  <text x="196" y="158" fill="#fafafa" font-family="Inter, Arial, sans-serif" font-size="48" font-weight="700" letter-spacing="-1.5">AirLocal</text>
+  <text x="104" y="288" fill="#fafafa" font-family="Inter, Arial, sans-serif" font-size="68" font-weight="700" letter-spacing="-2.5">AirDrop for Android</text>
+  <text x="104" y="368" fill="#fafafa" font-family="Inter, Arial, sans-serif" font-size="68" font-weight="700" letter-spacing="-2.5">and every device.</text>
+  <text x="108" y="442" fill="#a1a1aa" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="500">Private, direct file sharing on your local network.</text>
+  <g transform="translate(108 500)">
+    <rect width="254" height="46" rx="23" fill="#27272a" stroke="#3f3f46"/>
+    <circle cx="25" cy="23" r="6" fill="#a1a1aa"/>
+    <text x="45" y="31" fill="#d4d4d8" font-family="Inter, Arial, sans-serif" font-size="19" font-weight="600">No uploads. No accounts.</text>
+  </g>
+  <g transform="translate(1028 454)" fill="none" stroke="#52525b" stroke-width="3" opacity=".8">
+    <rect x="-80" y="-100" width="116" height="190" rx="15"/>
+    <rect x="-250" y="-62" width="142" height="100" rx="12"/>
+    <path d="M-108-13h-34M-142-13l12-10M-142-13l12 10M-80 0h-28M-108 0l12-10M-108 0l12 10" stroke="#a1a1aa" stroke-linecap="round"/>
+  </g>
+</svg>

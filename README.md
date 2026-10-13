@@ -23,6 +23,7 @@ Open AirLocal on two devices, pair them using a QR code or room code, and transf
 </p>
 
 ---
+<img width="967" height="914" alt="image" src="https://github.com/user-attachments/assets/5954deb0-95c3-4421-b1fd-4a0f358d385b" />
 
 ## The idea
 

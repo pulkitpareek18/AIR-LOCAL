@@ -3,12 +3,21 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "build": "tailwindcss -i ./src/tailwind.css -o ./styles.css --minify",
-    "dev": "tailwindcss -i ./src/tailwind.css -o ./styles.css --watch",
-    "check": "node --check app.js && node --check worker/worker.js"
+    "build": "vite build",
+    "dev": "vite",
+    "check": "tsc --noEmit && node --check worker/worker.js"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
     "autoprefixer": "^10.4.21",
-    "tailwindcss": "^3.4.17"
+    "@vitejs/plugin-react": "^5.0.4",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
   }
 }

@@ -6,7 +6,7 @@ AirDrop-style file sharing for any device. Open the link on two devices on the s
 
 | Layer | Technology | Cost |
 |---|---|---|
-| Hosting | Static Tailwind-built `index.html`, `app.js`, and `styles.css` on Vercel — no serverless functions, no KV | Free — unlimited static requests |
+| Hosting | Static Vite + React + TypeScript build on Vercel — no serverless functions, no KV | Free — unlimited static requests |
 | Discovery + signaling | Cloudflare Worker + Durable Object (WebSocket room per network) | Free — 100k req/day, DO hibernation (idle = ₹0) |
 | File transfer | WebRTC DataChannels, direct browser connection over your LAN | Free — bytes never touch a server |
 
@@ -23,7 +23,7 @@ npx wrangler deploy
 Wrangler prints your Worker URL, e.g. `https://airlocal-relay.you.workers.dev`.
 
 **2. Point the app at it** — set the deployed Worker URL in the `RELAY_DEFAULT`
-constant in [app.js](./app.js), then deploy the frontend. Users may override it
+constant in [src/airlocal.ts](./src/airlocal.ts), then deploy the frontend. Users may override it
 locally with:
 
 ```js
@@ -39,7 +39,8 @@ npx vercel --prod
 ```
 
 Vercel also runs `npm run build` automatically from [vercel.json](./vercel.json).
-The production frontend uses compiled Tailwind CSS rather than the Tailwind CDN.
+The production frontend uses Vite's compiled React/TypeScript bundle, local shadcn-style primitives in
+`src/components/ui`, and Tailwind CSS rather than the Tailwind CDN.
 
 ## Privacy and security
 

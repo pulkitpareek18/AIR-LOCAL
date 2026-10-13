@@ -1,6 +1,6 @@
 # AirLocal
 
-AirDrop-style file sharing for any device. For a direct local transfer, open the link on two devices on the same Wi-Fi, or connect one device to the other’s phone hotspot. They discover each other automatically, tap to connect, and files stream directly device-to-device over WebRTC. File bytes stay on the local connection, so they do not use your internet data or get uploaded to any server.
+AirDrop-style file sharing for any device. For a direct local transfer, open the link on two devices on the same local network: shared Wi-Fi, a phone hotspot, or LAN/Ethernet. They discover each other automatically, tap to connect, and files stream directly device-to-device over WebRTC. File bytes stay on the local connection, so they do not use your internet data or get uploaded to any server.
 
 ## Architecture (why it costs ₹0)
 
@@ -46,9 +46,10 @@ The production frontend uses Vite's compiled React/TypeScript bundle, local shad
 
 - File bytes never pass through the Worker or Vercel; WebRTC carries them directly
   between browsers.
-- On the same Wi-Fi or phone hotspot, the file transfer uses the local network
-  rather than your internet connection. Only lightweight discovery and signaling
-  messages use the relay.
+- Both devices should be on the same local network: shared Wi-Fi, a phone
+  hotspot, or LAN/Ethernet. The file transfer then uses that local network
+  rather than your internet connection. Only lightweight discovery and
+  signaling messages use the relay.
 - The Worker handles only room presence, WebRTC signaling, and transfer-control
   fallback messages.
 - Room codes are discovery identifiers, not passwords. Anyone who knows a room
@@ -118,7 +119,10 @@ Before sharing a public URL:
 2. Pair two ways:
    - **QR**: scan the on-page QR with any phone camera — it opens a device-specific link, joins the room, and automatically connects to the device that displayed the QR.
    - **Code**: share the 4-digit code verbally; the other device taps the room chip and enters it.
-3. For a direct local transfer, keep both devices on the same Wi-Fi or connect one to the other’s phone hotspot. Devices in the same room can still discover each other through the relay when they are on different networks, but the actual route depends on browser and network conditions.
+3. For a direct local transfer, keep both devices on the same local network:
+   shared Wi-Fi, a phone hotspot, or LAN/Ethernet. Devices in the same room can
+   still discover each other through the relay when they are on different
+   networks, but the actual route depends on browser and network conditions.
 4. Tapping a peer sends a connect request → accept → SDP/ICE flow over the WebSocket (~5 KB). QR connections use their device pairing token to skip the approval prompt.
 5. 4 parallel unordered data channels stream the file in 64 KB chunks straight to OPFS (disk) — RAM stays flat even for 10 GB+ files.
 6. On startup, AirLocal clears abandoned files from its origin-private OPFS storage so interrupted transfers do not accumulate locally.

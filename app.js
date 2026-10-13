@@ -134,6 +134,10 @@
     overwritePolicy = null;
     updateSaveLocationUI();
   }
+  function backupPathPreview() {
+    const parts = expandBackupConvention(new Date());
+    return parts.length ? parts.join('/') : 'Backup';
+  }
   function setBackupMode(value) {
     localStorage.setItem('airlocal.backup-mode', value ? '1' : '0');
     backupSessionDirectory = null;
@@ -163,7 +167,9 @@
     if (mainName) mainName.textContent = location;
     if (mainDescription) mainDescription.textContent = detail;
     const relativePath = saveDirectoryReady
-      ? backupSessionPath || `${location}${backupMode() ? '/YYYY-MM-DD/HH-mm-ss' : ''}`
+      ? backupMode()
+        ? backupSessionPath || `${location}/${backupPathPreview()}`
+        : location
       : 'Browser Downloads';
     if (path) path.textContent = relativePath;
     if (mainPath) mainPath.textContent = relativePath;
@@ -172,6 +178,10 @@
     if (backup) backup.checked = backupMode();
     const naming = document.getElementById('backupNaming');
     if (naming && document.activeElement !== naming) naming.value = backupNamingConvention();
+    const namingPreview = document.getElementById('backupNamingPreview');
+    if (namingPreview) namingPreview.textContent = saveDirectoryReady
+      ? `${location}/${backupPathPreview()}`
+      : backupPathPreview();
   }
   async function chooseSaveDirectory() {
     if (!window.showDirectoryPicker) {

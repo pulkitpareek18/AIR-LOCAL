@@ -74,7 +74,7 @@ export function AppContent() {
       <div className="mt-4 text-xs text-muted-foreground">
         <div className="mb-4 flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2.5 text-foreground">
           <i data-lucide="wifi" className="mt-0.5 h-4 w-4 shrink-0 text-primary"></i>
-          <span><span className="font-medium">Keep both devices on the same network.</span> Use the same Wi-Fi, or connect one device to the other’s phone hotspot. Files stay on that local connection, so they do not use your internet data.</span>
+          <span><span className="font-medium">Keep both devices on the same local network.</span> Use the same Wi-Fi, a phone hotspot, or a LAN/Ethernet connection. Files stay on that local connection, so they do not use your internet data.</span>
         </div>
         <div className="flex gap-2">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-foreground">1</span>
@@ -132,7 +132,7 @@ export function AppContent() {
         </div>
       </div>
       <div className="border-t border-border px-5 py-2.5 text-center text-xs text-muted-foreground">
-        Keep both devices on the same Wi-Fi or phone hotspot. Files use the local connection, not your internet data.
+        Keep both devices on the same local network: shared Wi-Fi, a phone hotspot, or LAN/Ethernet. Files use the local connection, not your internet data.
       </div>
     </section>
 
@@ -284,7 +284,7 @@ export function AppContent() {
           <article className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-secondary"><i data-lucide="scan-line" className="h-4 w-4"></i></div>
             <h2 className="mt-4 text-sm font-semibold">1. Pair</h2>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">For a direct local transfer, keep both devices on the same Wi-Fi network or connect one to the other’s phone hotspot. File bytes stay on the local connection, so the transfer does not use your internet data. Then scan the QR code or enter the same room code.</p>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">For a direct local transfer, keep both devices on the same local network: shared Wi-Fi, a phone hotspot, or LAN/Ethernet. File bytes stay on the local connection, so the transfer does not use your internet data. Then scan the QR code or enter the same room code.</p>
           </article>
           <article className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-secondary"><i data-lucide="file-up" className="h-4 w-4"></i></div>

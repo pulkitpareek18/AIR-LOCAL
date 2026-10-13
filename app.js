@@ -1602,6 +1602,7 @@
     qrTargetSid = sanitizeSid(new URLSearchParams(location.search).get('device'));
     qrPairToken = new URLSearchParams(location.search).get('pair');
     if (qrTargetSid === SESSION_ID) qrTargetSid = null;
+    if (qrTargetSid) document.getElementById('onboardingCard')?.remove();
     networkId = getRoom();
     const networkLabel = document.getElementById('networkLabel');
     if (networkLabel) networkLabel.textContent = networkId;

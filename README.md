@@ -8,7 +8,7 @@ AirDrop-style file sharing for any device. Open the link on two devices on the s
 |---|---|---|
 | Hosting | Static Tailwind-built `index.html`, `app.js`, and `styles.css` on Vercel — no serverless functions, no KV | Free — unlimited static requests |
 | Discovery + signaling | Cloudflare Worker + Durable Object (WebSocket room per network) | Free — 100k req/day, DO hibernation (idle = ₹0) |
-| File transfer | WebRTC DataChannels, direct P2P over your LAN | Free — bytes never touch a server |
+| File transfer | WebRTC DataChannels, direct browser connection over your LAN | Free — bytes never touch a server |
 
 ## Setup (one time, ~3 minutes)
 

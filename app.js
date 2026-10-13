@@ -1,7 +1,7 @@
   // ================================================================
   //  AirLocal — shadcn-styled, zero-Vercel-backend
   //  Discovery + signaling: Cloudflare Worker Durable Object (WS)
-  //  Transfer: WebRTC DataChannels, direct P2P (4×unordered, 64KB)
+  //  Transfer: WebRTC DataChannels, direct browser connection (4×unordered, 64KB)
   // ================================================================
 
   // Deployed relay (Cloudflare Worker).
@@ -68,6 +68,23 @@
     if (/Macintosh/.test(ua)) return 'mac';
     if (/Linux/.test(ua)) return 'linux';
     return 'other';
+  }
+  function connectionMode() {
+    const type = navigator.connection?.type;
+    if (type === 'wifi' || type === 'wimax') return 'Wi-Fi';
+    if (type === 'ethernet') return 'Ethernet';
+    if (type === 'cellular') return 'Cellular';
+    if (type === 'none' || !navigator.onLine) return 'Offline';
+    return 'Network';
+  }
+  function updateConnectionMode() {
+    const element = document.getElementById('networkMode');
+    if (!element) return;
+    const mode = connectionMode();
+    element.textContent = mode;
+    element.title = mode === 'Wi-Fi'
+      ? 'Connected over Wi-Fi. Browsers do not expose whether it is 2.4, 5, or 6 GHz.'
+      : 'Detected from browser network information when available.';
   }
   function iconFor(kind) {
     return { ios: 'smartphone', android: 'smartphone', windows: 'monitor', mac: 'laptop', linux: 'hard-drive' }[kind] || 'monitor';
@@ -550,6 +567,7 @@
     const badge = document.getElementById('connectionBadge');
     if (badge) badge.setAttribute('aria-label', `Connection status: ${label}`);
     document.body.setAttribute('aria-busy', mode === 'off' || mode === 'busy' ? 'true' : 'false');
+    updateConnectionMode();
   }
 
   const fmtMB = b => `${(b / 1048576).toFixed(1)} MB`;
@@ -818,6 +836,9 @@
     if (!document.hidden) relayConnect();
   });
   window.addEventListener('online', relayConnect);
+  window.addEventListener('online', updateConnectionMode);
+  window.addEventListener('offline', updateConnectionMode);
+  navigator.connection?.addEventListener('change', updateConnectionMode);
   window.addEventListener('focus', relayConnect);
 
   function relaySend(obj) {
@@ -1559,6 +1580,7 @@
 
   // ---------- Boot ----------
   window.addEventListener('DOMContentLoaded', async () => {
+    updateConnectionMode();
     renderInfoPage();
     window.addEventListener('hashchange', renderInfoPage);
     applyTheme(currentTheme());

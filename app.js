@@ -94,7 +94,7 @@
     toast.querySelector('button').onclick = () => toast.remove();
     region.appendChild(toast);
     lucide.createIcons();
-    setTimeout(() => toast.remove(), 4500);
+    setTimeout(() => toast.remove(), 10000);
   }
   function currentTheme() {
     return localStorage.getItem('airlocal.theme') || 'device';
@@ -122,10 +122,18 @@
   }
   function updateSaveLocationUI() {
     const name = document.getElementById('saveLocationName');
+    const mainName = document.getElementById('mainSaveLocationName');
+    const mainDescription = document.getElementById('mainSaveLocationDescription');
     const organize = document.getElementById('organizeFiles');
+    const location = saveDirectoryReady ? saveDirectoryHandle.name : 'Browser Downloads';
+    const detail = saveDirectoryReady
+      ? organizeByType() ? 'Files are organized into type folders.' : 'Files are saved directly here.'
+      : 'Files will use your browser download folder.';
     if (name) name.textContent = saveDirectoryReady
-      ? `${saveDirectoryHandle.name}${organizeByType() ? ' · organized by type' : ''}`
-      : 'Browser Downloads (fallback)';
+      ? `${location}${organizeByType() ? ' · organized by type' : ''}`
+      : `${location} (fallback)`;
+    if (mainName) mainName.textContent = location;
+    if (mainDescription) mainDescription.textContent = detail;
     if (organize) organize.checked = organizeByType();
   }
   async function chooseSaveDirectory() {
@@ -166,6 +174,10 @@
     await saveDirectoryHandleToDb(null);
     updateSaveLocationUI();
     showToast('Save folder cleared', 'Received files will use browser downloads.', 'success');
+  }
+  function manageSaveLocation() {
+    if (saveDirectoryReady) toggleSettings();
+    else chooseSaveDirectory();
   }
   function saveDirectoryDb() {
     return new Promise((resolve, reject) => {

@@ -151,6 +151,21 @@
     </section>
 
     <!-- ── Transfer panel ───────────────────────────────── -->
+    <div class="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-5 py-3 text-card-foreground shadow-sm">
+      <div class="flex min-w-0 items-start gap-3">
+        <i data-lucide="folder-down" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"></i>
+        <div class="min-w-0">
+          <p class="text-xs font-medium">Received files are stored in</p>
+          <p id="mainSaveLocationName" class="mt-0.5 truncate text-sm font-semibold">Browser Downloads</p>
+          <p id="mainSaveLocationDescription" class="mt-0.5 text-[11px] text-muted-foreground">Files will use your browser download folder.</p>
+        </div>
+      </div>
+      <button onclick="manageSaveLocation()" class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+        <i data-lucide="settings-2" class="h-3.5 w-3.5"></i>
+        <span class="hidden sm:inline">Manage</span>
+      </button>
+    </div>
+
     <section id="transferSection" class="hidden grid-cols-1 gap-4 md:grid-cols-2">
 
       <div class="rounded-lg border border-border bg-card text-card-foreground shadow-sm">

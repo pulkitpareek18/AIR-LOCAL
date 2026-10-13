@@ -1,8 +1,8 @@
 # AirLocal
 
 <p align="center">
-  <strong>Private, local file sharing from the browser.</strong><br />
-  Send files between nearby devices without accounts, uploads, or a native app.
+  <strong>Local file sharing from the browser.</strong><br />
+  Transfer files between nearby devices without an account or native app.
 </p>
 
 <p align="center">
@@ -33,13 +33,13 @@
 
 ## Overview
 
-AirLocal is a production-oriented browser application for moving files between
-nearby devices. Open the site on both devices, pair with a QR code or a
-four-digit room code, and transfer files through a direct browser connection.
+AirLocal is a browser application for transferring files between nearby
+devices. Open it on both devices, pair with a QR code or four-digit room code,
+and transfer files through a direct browser connection.
 
-For the best local experience, keep both devices on the **same local network**:
-shared Wi-Fi, a phone hotspot, or LAN/Ethernet. File bytes stay on that local
-connection, so they do not use your internet data or get uploaded to a server.
+Both devices should use the **same local network**: shared Wi-Fi, a phone
+hotspot, or LAN/Ethernet. File bytes stay on that local connection and do not
+use internet data or pass through a server.
 
 ### Highlights
 
@@ -49,17 +49,15 @@ connection, so they do not use your internet data or get uploaded to a server.
   browsers.
 - **Progress and transfer telemetry** — progress, speed, and estimated time
   remaining are shown during transfers.
-- **Reliable large-file workflow** — chunked streaming, backpressure, queues,
+- **Transfer controls** — chunked streaming, backpressure, queues,
   cancellation, and receiver-side cleanup.
 - **Flexible save destinations** — browser Downloads fallback or a selected
   folder through the File System Access API.
 - **Backup mode** — create timestamped session folders after folder permission
   has been granted.
 - **Conflict handling** — Replace, Keep both, Skip, and Replace all.
-- **Responsive interface** — Vite, React, TypeScript, Tailwind CSS, and local
+- **Frontend stack** — Vite, React, TypeScript, Tailwind CSS, and local
   shadcn-style UI primitives.
-- **Deployable for free** — static frontend on Vercel and a lightweight
-  Cloudflare Worker relay.
 
 ## Preview
 
@@ -83,12 +81,10 @@ or inspect file contents.
 4. Accept the connection request when prompted.
 5. Choose files and send them directly to the other browser.
 
-The room relay exchanges only the small messages needed for presence and
-WebRTC negotiation. Once the direct browser connection is established, the
-file transfer uses the local network. If devices are on different networks,
-discovery may still work, but the route and availability depend on the
-browser,
-network policy, NAT behavior, and WebRTC connectivity.
+The room relay exchanges only the messages needed for presence and WebRTC
+negotiation. Once the direct browser connection is established, file data uses
+the local network. Discovery may still work across different networks, but
+transfer availability and routing depend on browser and network conditions.
 
 ## Architecture
 
@@ -117,9 +113,8 @@ network policy, NAT behavior, and WebRTC connectivity.
 - The relay validates session identifiers, limits rooms to 12 peers, rejects
   oversized signaling payloads, and expires inactive sessions.
 
-AirLocal is a browser application, not a replacement for an audited enterprise
-file-security system. Review your browser, network, and deployment settings
-before using it for sensitive data.
+Review your browser, network, and deployment settings before using AirLocal for
+sensitive data.
 
 ## Quick start
 
@@ -139,9 +134,8 @@ npm install
 npm run dev
 ```
 
-Open the local Vite URL shown in the terminal. To test two devices, expose the
-development server through your trusted local-network tooling or deploy the
-frontend over HTTPS.
+Open the local Vite URL shown in the terminal. For multi-device testing, use a
+trusted local-network tunnel or deploy the frontend over HTTPS.
 
 ### Available scripts
 
@@ -198,9 +192,9 @@ Vite build command and `dist` output directory.
 
 ### Custom domains
 
-Add the domain in Vercel under **Project → Settings → Domains**. For the
-`js.org` subdomain, submit the CNAME mapping requested by the js.org project;
-the apex `A` record is not used for a js.org subdomain.
+Add the domain in Vercel under **Project → Settings → Domains**. For a
+`js.org` subdomain, submit the CNAME mapping requested by the js.org project.
+An apex `A` record is not used for a `js.org` subdomain.
 
 ## Save locations and backup mode
 
@@ -317,8 +311,7 @@ or generated build output.
 
 ## License
 
-No license has been declared yet. Until a license is added to this repository,
-do not assume that the source code is available for unrestricted reuse.
+AirLocal is licensed under the [MIT License](./LICENSE).
 
 ## Maintainer
 

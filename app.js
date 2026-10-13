@@ -138,6 +138,8 @@
     const name = document.getElementById('saveLocationName');
     const mainName = document.getElementById('mainSaveLocationName');
     const mainDescription = document.getElementById('mainSaveLocationDescription');
+    const path = document.getElementById('saveLocationPath');
+    const mainPath = document.getElementById('mainSaveLocationPath');
     const organize = document.getElementById('organizeFiles');
     const location = saveDirectoryReady ? saveDirectoryHandle.name : 'Browser Downloads';
     const detail = saveDirectoryReady
@@ -149,6 +151,11 @@
       : `${location} (fallback)`;
     if (mainName) mainName.textContent = location;
     if (mainDescription) mainDescription.textContent = detail;
+    const relativePath = saveDirectoryReady
+      ? backupSessionPath || `${location}${backupMode() ? '/YYYY-MM-DD/HH-mm-ss' : ''}`
+      : 'Browser Downloads';
+    if (path) path.textContent = relativePath;
+    if (mainPath) mainPath.textContent = relativePath;
     if (organize) organize.checked = organizeByType();
     const backup = document.getElementById('backupMode');
     if (backup) backup.checked = backupMode();
@@ -281,6 +288,7 @@
     const dateDirectory = await saveDirectoryHandle.getDirectoryHandle(date, { create: true });
     backupSessionDirectory = await dateDirectory.getDirectoryHandle(time, { create: true });
     backupSessionPath = `${saveDirectoryHandle.name}/${date}/${time}`;
+    updateSaveLocationUI();
     return { directory: backupSessionDirectory, path: backupSessionPath };
   }
   async function uniqueFileName(directory, name) {
@@ -1233,7 +1241,7 @@
     showToast(
       savedToFolder ? 'File saved successfully' : 'Transfer complete',
       savedToFolder
-        ? `${savedToFolder.name} was stored in ${savedToFolder.folder}.`
+        ? `${savedToFolder.name} was stored at ${savedToFolder.folder}/${savedToFolder.name}.`
         : `${transfer.name} was downloaded by your browser.`,
       'success'
     );

@@ -174,7 +174,7 @@ and publishes the `dist/` directory through GitHub Pages.
 The expected project URL is:
 
 ```text
-https://pulkitpareek18.github.io/AIR-LOCAL/
+https://pulkitpareek18.github.io/AirLocal/
 ```
 
 To enable it manually, open the repository's **Settings → Pages** and select

@@ -51,6 +51,8 @@
             <span id="statusDot" class="relative inline-flex h-2 w-2 rounded-full bg-zinc-500"></span>
           </span>
           <span id="statusText" class="text-muted-foreground">Connecting</span>
+          <span class="hidden h-3.5 w-px bg-border sm:block" aria-hidden="true"></span>
+          <span id="networkMode" class="hidden text-muted-foreground sm:inline" title="Your browser may not expose Wi-Fi frequency details">Network</span>
         </div>
       </div>
     </div>
@@ -190,7 +192,7 @@
             <i data-lucide="send-horizontal" class="h-4 w-4 text-muted-foreground"></i>
             <h3 class="text-sm font-semibold leading-none tracking-tight">Send files</h3>
           </div>
-          <span class="text-xs text-muted-foreground font-mono">P2P direct</span>
+          <span class="text-xs text-muted-foreground font-mono">Direct transfer</span>
         </div>
         <div class="p-5">
           <div id="dropZone" class="group cursor-pointer rounded-md border border-dashed border-border bg-background/50 p-8 text-center transition-colors hover:border-muted-foreground/50 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" tabindex="0" role="button" aria-label="Select files to send">
@@ -310,7 +312,7 @@
             <i data-lucide="shield-check" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"></i>
             <div>
               <h2 class="text-sm font-semibold">What the relay does</h2>
-              <p class="mt-2 text-xs leading-5 text-muted-foreground">The Cloudflare relay coordinates room presence and WebRTC signaling only. It does not receive, store, or inspect transferred file contents. If a direct peer connection cannot be established, AirLocal does not silently upload files to the relay.</p>
+              <p class="mt-2 text-xs leading-5 text-muted-foreground">The Cloudflare relay coordinates room presence and WebRTC signaling only. It does not receive, store, or inspect transferred file contents. If a direct browser connection cannot be established, AirLocal does not silently upload files to the relay.</p>
             </div>
           </div>
         </div>
@@ -327,6 +329,10 @@
           </a>
           <a href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_API" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
             <span><span class="block text-sm font-medium">File System API · MDN Web Docs</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Browser-managed access to user-selected folders.</span></span>
+            <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
+          </a>
+          <a href="https://developer.mozilla.org/en-US/docs/Web/API/Network_Information_API" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
+            <span><span class="block text-sm font-medium">Network Information API · MDN Web Docs</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">Browser-reported connection categories such as Wi-Fi or Ethernet, when supported.</span></span>
             <i data-lucide="external-link" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"></i>
           </a>
           <a href="https://developers.cloudflare.com/durable-objects/" target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-muted-foreground/50 hover:bg-accent">
@@ -351,7 +357,7 @@
         </div>
         <div>
           <h2 id="incomingTitle" class="text-base font-semibold leading-none tracking-tight">Incoming connection</h2>
-          <p class="mt-1.5 text-sm text-muted-foreground">Accept to receive files over an encrypted P2P link.</p>
+          <p class="mt-1.5 text-sm text-muted-foreground">Accept to receive files over an encrypted device connection.</p>
         </div>
       </div>
     </div>

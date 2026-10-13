@@ -156,7 +156,7 @@
         <i data-lucide="folder-down" class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"></i>
         <div class="min-w-0">
           <p class="text-xs font-medium">Received files are stored in</p>
-          <p id="mainSaveLocationName" class="mt-0.5 truncate text-sm font-semibold">Browser Downloads</p>
+          <button type="button" onclick="openSelectedFolder()" id="mainSaveLocationName" class="mt-0.5 block max-w-full truncate text-left text-sm font-semibold underline decoration-dotted underline-offset-2 hover:text-primary">Browser Downloads</button>
           <p id="mainSaveLocationPath" class="mt-1 break-all font-mono text-[10px] text-muted-foreground">Browser Downloads</p>
           <p id="mainSaveLocationDescription" class="mt-0.5 text-[11px] text-muted-foreground">Files will use your browser download folder.</p>
         </div>
@@ -350,7 +350,7 @@
           <i data-lucide="folder-down" class="mt-0.5 h-4 w-4 text-muted-foreground"></i>
           <div class="min-w-0 flex-1">
             <p class="text-sm font-medium">Save location</p>
-            <p id="saveLocationName" class="mt-0.5 truncate text-xs text-muted-foreground">Browser Downloads (fallback)</p>
+            <button type="button" onclick="openSelectedFolder()" id="saveLocationName" class="mt-0.5 block max-w-full truncate text-left text-xs text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-primary">Browser Downloads (fallback)</button>
             <p class="mt-1 text-[10px] text-muted-foreground">Relative folder path</p>
             <p id="saveLocationPath" class="break-all font-mono text-[10px] text-foreground">Browser Downloads</p>
             <div class="mt-3 flex gap-2">
@@ -366,6 +366,12 @@
         <label class="mt-3 flex items-start gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
           <input id="backupMode" type="checkbox" onchange="setBackupMode(this.checked)" class="mt-0.5 h-3.5 w-3.5 rounded border-input accent-primary">
           <span><span class="block font-medium text-foreground">Backup mode</span><span>Each connection creates a new date-and-time folder so daily backups never overwrite earlier sessions.</span></span>
+        </label>
+        <label class="mt-3 block border-t border-border pt-3 text-xs text-muted-foreground">
+          <span class="block font-medium text-foreground">Backup folder naming</span>
+          <span class="mt-1 block">Use tokens: <code>{date}</code>, <code>{time}</code>, <code>{year}</code>, <code>{month}</code>, <code>{day}</code>, <code>{hour}</code>, <code>{minute}</code>, <code>{second}</code>.</span>
+          <input id="backupNaming" type="text" value="{date}/{time}" onchange="setBackupNamingConvention(this.value)" placeholder="{date}/{time}" class="mt-2 h-8 w-full rounded-md border border-input bg-background px-2.5 font-mono text-xs text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <span class="mt-1 block text-[10px]">Example: <code>Backup-{date}/{time}</code></span>
         </label>
         <p class="mt-3 text-[10px] leading-relaxed text-muted-foreground">Browsers do not expose the full Finder or File Explorer path. AirLocal shows the selected folder and the exact relative destination used for each received file.</p>
       </div>

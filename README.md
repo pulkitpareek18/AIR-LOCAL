@@ -1,135 +1,235 @@
 # AirLocal
 
+### AirDrop for every device. No app required.
+
+**AirLocal** is a browser-based, peer-to-peer file transfer application that lets you move files between Android, iPhone, Windows, macOS, and Linux using nothing but a modern web browser.
+
+No cables. No account. No dedicated app. No cloud file uploads.
+
+Open AirLocal on two devices, pair them using a QR code or room code, and transfer files directly between their browsers over your local network.
+
 <p align="center">
-  <strong>AirDrop for Android and every device.</strong><br />
-  Share files privately in your browser over Wi-Fi, a phone hotspot, or LAN.
+  <a href="https://airlocal.vercel.app/"><strong>Try AirLocal →</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/pulkitpareek18/AirLocal">Source Code</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/pulkitpareek18/AirLocal/issues">Report an Issue</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/pulkitpareek18/AirLocal">
-    <img src="https://img.shields.io/github/stars/pulkitpareek18/AirLocal?style=for-the-badge&logo=github&label=stars" alt="GitHub stars" />
-  </a>
-  <a href="https://github.com/pulkitpareek18/AirLocal/network/members">
-    <img src="https://img.shields.io/github/forks/pulkitpareek18/AirLocal?style=for-the-badge&logo=github&label=forks" alt="GitHub forks" />
-  </a>
-  <a href="https://github.com/pulkitpareek18/AirLocal/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/pulkitpareek18/AirLocal?style=for-the-badge&label=license" alt="MIT License" />
-  </a>
+  <img src="https://img.shields.io/github/stars/pulkitpareek18/AirLocal?style=flat-square&logo=github&label=Stars" alt="GitHub stars" />
+  <img src="https://img.shields.io/github/forks/pulkitpareek18/AirLocal?style=flat-square&label=Forks" alt="GitHub forks" />
+  <img src="https://img.shields.io/github/license/pulkitpareek18/AirLocal?style=flat-square&label=License" alt="MIT License" />
 </p>
 
-<p align="center">
-  <a href="#why-airlocal">Why AirLocal</a> ·
-  <a href="#how-it-works">How it works</a> ·
-  <a href="#run-it-yourself">Run it yourself</a> ·
-  <a href="#privacy-model">Privacy</a>
-</p>
+---
 
-## The problem
+## The idea
 
-Moving a file between Android, iPhone, Mac, Windows, and Linux should not
-require an account, a cable, a messaging app, or a third-party upload service.
-AirLocal gives every modern browser a simple local file-sharing workflow.
+Sharing a file between your phone and laptop should be as simple as sharing it between two devices in the same ecosystem.
 
-## Why AirLocal
+But transferring a photo from Android to a Mac, a document from an iPhone to a Windows PC, or a video from a laptop to another device can involve cables, extra applications, messaging platforms, or cloud storage.
 
-- **AirDrop-style, without Apple-only hardware** — Android, iPhone, Mac,
-  Windows, and Linux can share through a browser.
-- **No account and no app install** — open the site and pair.
-- **Local-first transfer** — keep both devices on the same Wi-Fi, phone
-  hotspot, or LAN/Ethernet network.
-- **Your files do not go to the relay** — WebRTC carries file data directly
-  between the browsers.
-- **QR pairing in seconds** — scan the QR code with a phone camera.
-- **Room-code pairing when you need it** — use a shared four-digit code.
-- **Built for real transfers** — queues, progress, speed, cancellation,
-  backpressure, and large-file staging.
-- **Control where received files go** — Downloads fallback, selected folders,
-  organization by file type, duplicate handling, and optional backup folders.
+AirLocal brings that simplicity to the open web.
 
-> **Important:** Both devices must be on the same local network. Use shared
-> Wi-Fi, a phone hotspot, or a LAN/Ethernet connection. If the devices are on
-> different networks, AirLocal will not transfer files. File transfer never
-> uses mobile data.
+It uses browser-native technologies to make cross-device file sharing accessible from practically any device with a compatible browser. Instead of uploading files to a central service and downloading them again, AirLocal establishes a peer-to-peer connection between the devices.
+
+**One browser. Two devices. A direct transfer.**
+
+## Why AirLocal?
+
+| Traditional file sharing | AirLocal |
+| --- | --- |
+| Often requires installing an application | Works in a browser |
+| May require an account | No account required |
+| May upload files to cloud storage | File data travels peer-to-peer |
+| Ecosystem-specific sharing tools | Cross-platform browser access |
+| Can require cables or external drives | Wireless transfer over a local network |
+
+## Features
+
+### Cross-platform by design
+
+Transfer files between Android, iOS, Windows, macOS, and Linux using compatible modern browsers. The receiving device doesn't need a dedicated AirLocal application.
+
+### Direct peer-to-peer transfers
+
+AirLocal uses WebRTC data channels to transfer file data directly between connected browsers. Its signaling relay helps establish the connection but does not receive or store the file contents.
+
+### QR code and room-code pairing
+
+Connect devices using a scannable QR code or a shared four-digit room code. Device names and platform indicators help identify participants.
+
+### Local-network transfers
+
+Designed for devices connected to the same Wi-Fi network, phone hotspot, or LAN/Ethernet network. File data travels over the local network rather than through a cloud file-storage service.
+
+### Built for practical transfers
+
+- Multiple files in a transfer queue
+- Chunked file streaming
+- Real-time transfer progress, speed, and estimated time remaining
+- Cancellation from the sender or receiver
+- Backpressure handling to help manage memory consumption
+- Large-file staging using the Origin Private File System (OPFS), where supported
+
+### Flexible file saving
+
+- Save to the browser's Downloads location as a fallback
+- Select a destination folder in supported browsers
+- Organize files by type
+- Handle duplicate filenames with Replace, Keep Both, Skip, or Replace All
+- Optional backup mode with configurable date and time-based folder names
+
+### No cloud file storage
+
+AirLocal does not upload file contents to a central storage service. Connection signaling and device discovery are handled separately from the actual file transfer.
+
+---
 
 ## How it works
 
+AirLocal separates device discovery from file transport.
+
 ```mermaid
-flowchart LR
-  A["Android / iPhone / Desktop<br />Browser"] <-->|"WebRTC file data<br />same local network"| B["Android / iPhone / Desktop<br />Browser"]
-  A -->|"QR or room code"| R["Cloudflare relay"]
-  B -->|"Presence + signaling"| R
-  R["Cloudflare relay<br />discovery only"]
+flowchart TD
+    A["Device A<br/>Browser"] <-->|"QR / Room Code"| C["Cloudflare Worker<br/>Discovery & Signaling"]
+    B["Device B<br/>Browser"] <-->|"Presence / Signaling"| C
+    A <-->|"WebRTC Data Channel<br/>Direct File Transfer"| B
 ```
 
-1. Open AirLocal on both devices.
-2. Connect both devices to the same local network.
-3. Scan the QR code, or enter the same four-digit room code.
-4. Accept the connection request.
-5. Select files and transfer them directly to the other browser.
+1. **Open AirLocal** on both devices.
+2. **Connect to the same local network** using Wi-Fi, a phone hotspot, or LAN/Ethernet.
+3. **Pair the devices** by scanning a QR code or entering the same room code.
+4. **Establish the connection** through the signaling relay.
+5. **Transfer files directly** between the connected browsers using WebRTC.
+6. **Save received files** using the available browser download or folder-access capabilities.
 
-The Cloudflare Worker helps devices find each other and negotiates the
-connection. It does not receive or store the file bytes. Once the browser
-connection is established, the transfer uses the local network.
+The Cloudflare Worker supports discovery, presence, and signaling. File contents are transferred over the peer-to-peer connection, not through the signaling relay.
 
-## What is included
+### Why WebRTC?
 
-### Pairing
+WebRTC provides browser-native peer-to-peer communication without requiring users to install a native client. Its data channels support sending arbitrary binary data, making them suitable for file transfer.
 
-- QR links with device-specific pairing information
-- Four-digit room codes
-- Nearby-device discovery
-- Reconnect and stale-session handling
-- Device names and platform indicators
+This architecture keeps the application lightweight and avoids routing file contents through a central application server.
 
-### Transfers
+---
 
-- Multi-file queue
-- Chunked streaming through four unordered data channels
-- Transfer progress, speed, and estimated time remaining
-- Sender and receiver cancellation
-- Backpressure for stable memory usage
-- OPFS staging for large received files
-- Browser Downloads fallback
+## Privacy and security
 
-### File management
+AirLocal is designed around a simple principle: **the infrastructure used to connect devices should not need to store the files being transferred.**
 
-- Select a destination folder where supported
-- Organize files into Images, Videos, Audio, Documents, Presentations,
-  Archives, and Other
-- Replace, Keep both, Skip, and Replace all conflict actions
-- Backup mode with configurable date and time tokens
-- Permission-aware fallback when custom folders are unavailable
+- **No file-storage backend:** AirLocal does not use a central cloud storage service for transferred files.
+- **Peer-to-peer transport:** File contents travel over the WebRTC connection between connected browsers.
+- **Encrypted transport:** WebRTC data channels provide encrypted transport.
+- **No account required:** Pairing does not require a user account.
+- **Local-first networking:** Transfers are designed to use the devices' shared local network.
 
-## Run it yourself
+### Important security considerations
 
-### Requirements
+- Room codes are discovery identifiers, not passwords. Anyone who knows a room code may be able to discover devices in that room.
+- Use a fresh room code for sensitive sharing sessions and verify the receiving device before accepting a connection.
+- Browser permissions, network configuration, and the signaling service remain part of the overall security model.
+- A peer-to-peer connection does not guarantee that every aspect of a session is private or that every transfer will remain entirely on the local network under every network configuration.
 
-- Node.js 18 or newer
+AirLocal is designed for direct file transfer, but users should still verify the destination and avoid sharing sensitive files with untrusted devices.
+
+---
+
+## Network requirements and limitations
+
+AirLocal is designed for **local-network file sharing**, not unrestricted transfers between arbitrary networks.
+
+- Both devices should be connected to the same Wi-Fi network, phone hotspot, or LAN/Ethernet network.
+- File transfer is intended to use the local network, not mobile data.
+- Both devices must have AirLocal open and available during the transfer.
+- Some routers, client-isolation settings, managed networks, and browser configurations may prevent a connection.
+- Internet access may be required for the hosted application and connection-signaling service, depending on the deployment.
+- Browser support for custom destination folders and OPFS varies. AirLocal falls back to standard browser downloads where possible.
+- Actual transfer speed and maximum practical file size depend on the network, browser, available storage, and device resources.
+
+The application prompts for confirmation before unusually large operations, including transfers involving more than 100 files, more than 25 GB in total, or a single file larger than 10 GB. These are confirmation thresholds, not guaranteed transfer limits.
+
+---
+
+## Technology stack
+
+AirLocal uses modern web technologies to provide a native-app-like file-sharing experience without requiring a native application.
+
+| Technology | Purpose |
+| --- | --- |
+| React 19 | Component-based user interface |
+| TypeScript | Type safety and maintainable application logic |
+| Vite | Development server and production build |
+| WebRTC Data Channels | Peer-to-peer file transport |
+| WebSockets | Signaling and real-time coordination |
+| Cloudflare Workers | Discovery and signaling infrastructure |
+| Cloudflare Durable Objects | Room coordination and shared session state |
+| OPFS | Staging received files in supported browsers |
+| Browser File System APIs | Destination-folder access where supported |
+| GitHub Actions | Automated checks and deployment |
+| GitHub Pages / Vercel | Static frontend hosting |
+
+The application uses browser-native capabilities wherever practical, keeping the frontend independent of a traditional file-storage backend.
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20 or a compatible supported version
 - npm
-- A modern browser with WebRTC, WebSockets, HTTPS, and OPFS support
-- A deployed relay for multi-device discovery
+- Git
+- A modern browser with WebRTC and WebSocket support
+- A deployed Cloudflare Worker for multi-device discovery and signaling
 
-### Frontend
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/pulkitpareek18/AirLocal.git
 cd AirLocal
-npm install
+```
+
+### 2. Install dependencies
+
+```bash
+npm ci
+```
+
+If you do not have a lockfile in your local checkout, use `npm install` instead.
+
+### 3. Start the development server
+
+```bash
 npm run dev
 ```
 
-Available commands:
+Open the local URL printed by Vite in your terminal.
+
+### 4. Run project checks
 
 ```bash
-npm run dev       # Start the Vite development server
-npm run check     # Type-check the frontend and validate the Worker syntax
-npm run build     # Build the production frontend into dist/
+npm run check
 ```
 
-### Relay
+This runs TypeScript checking and validates the Cloudflare Worker JavaScript syntax.
 
-The relay is a Cloudflare Worker with a Durable Object room for presence and
-signaling:
+### 5. Build for production
+
+```bash
+npm run build
+```
+
+The production frontend is generated in `dist/`.
+
+---
+
+## Deploying the signaling relay
+
+AirLocal uses a Cloudflare Worker and Durable Object for room coordination and signaling.
+
+From the repository root:
 
 ```bash
 cd worker
@@ -137,22 +237,30 @@ npx wrangler login
 npx wrangler deploy
 ```
 
-The deployment configuration is in
-[worker/wrangler.toml](./worker/wrangler.toml). After deployment, set the
-Worker URL in `RELAY_DEFAULT` in [src/airlocal.ts](./src/airlocal.ts).
+Review `worker/wrangler.toml` before deployment and ensure your Cloudflare account has the required configuration and Durable Object setup.
 
-For local testing, the relay can also be overridden in the browser:
+After deploying the Worker, configure the relay endpoint in `src/airlocal.ts` using the `RELAY_DEFAULT` setting.
 
-```js
+For local testing, the application also supports overriding the relay endpoint in the browser:
+
+```javascript
 localStorage.setItem(
   'airlocal.relay.v1',
   'wss://your-worker.workers.dev'
 );
 ```
 
-### Vercel
+Replace the example URL with your actual deployed Worker WebSocket endpoint.
 
-The frontend is a static Vite build and can be deployed to Vercel:
+Do not commit credentials, private configuration, or deployment secrets to the repository.
+
+---
+
+## Deploying the frontend
+
+AirLocal is a static Vite application and can be hosted on services that serve static web applications over HTTPS.
+
+### Vercel
 
 ```bash
 npm run check
@@ -160,131 +268,100 @@ npm run build
 npx vercel --prod
 ```
 
-[vercel.json](./vercel.json) configures the build command and `dist` output
-directory. Add a custom domain from the Vercel project settings. A `js.org`
-subdomain is configured through the js.org CNAME mapping process.
+The repository includes `vercel.json` for the frontend build configuration.
+
+Live application: [airlocal.vercel.app](https://airlocal.vercel.app/)
 
 ### GitHub Pages
 
-GitHub Pages deployment is configured in
-`.github/workflows/deploy-pages.yml`. Every push to `main` runs the project
-checks, builds the Vite frontend, preserves the hash-based application routes,
-and publishes the `dist/` directory through GitHub Pages.
+The repository includes a GitHub Actions workflow that checks the project, builds the frontend, and publishes the generated `dist/` directory.
 
-The expected project URL is:
+The workflow can be run automatically on pushes to `main` or manually through the GitHub Actions interface.
 
-```text
-https://pulkitpareek18.github.io/AirLocal/
-```
+For a custom domain, configure the domain in the repository's Pages settings and ensure the production build uses the correct Vite base path.
 
-To enable it manually, open the repository's **Settings → Pages** and select
-**GitHub Actions** as the source. The workflow then deploys automatically on
-future pushes to `main`.
-
-## Privacy model
-
-- File bytes are transferred by WebRTC between the connected browsers.
-- Vercel does not receive file contents.
-- The Cloudflare relay handles presence, signaling, and limited control
-  messages only.
-- Same-network transfers use the local Wi-Fi, hotspot, or LAN/Ethernet path.
-- Room codes identify a discovery room; they are not passwords.
-- Anyone who knows a room code may see devices in that room. Use a fresh code
-  for sensitive sharing.
-- WebRTC provides the encrypted browser transport used for the connection.
-
-The privacy properties also depend on the browser, operating system, network,
-and relay deployment you use. Review those environments before transferring
-sensitive data.
-
-## Save locations and backup mode
-
-Received files use the browser's Downloads folder by default. On browsers that
-support the File System Access API, a receiver can grant access to a selected
-folder.
-
-After permission is granted, AirLocal can:
-
-- Organize files by type
-- Create a new timestamped folder for each connection
-- Use configurable tokens such as `{date}`, `{time}`, `{year}`, `{month}`,
-  `{day}`, `{hour}`, `{minute}`, and `{second}`
-- Handle duplicate names with Replace, Keep both, Skip, or Replace all
-
-Backup mode is disabled when Browser Downloads is active because creating
-backup folders requires permission to write to a selected folder.
-
-## Browser support and limits
-
-AirLocal requires HTTPS in production, WebRTC, WebSockets, and OPFS. Private
-browsing, managed browsers, and some mobile browser configurations may disable
-OPFS or the File System Access API. AirLocal falls back to browser Downloads
-where possible.
-
-The application asks for confirmation before unusually large operations:
-
-- More than 100 files
-- More than 25 GB total
-- A file larger than 10 GB
-
-These are confirmation thresholds, not guaranteed transfer limits. Actual
-limits depend on available storage, browser behavior, device resources, and
-network conditions.
+---
 
 ## Project structure
 
 ```text
-.
+AirLocal/
+├── .github/
+│   └── workflows/
+│       └── deploy-pages.yml    # GitHub Pages deployment
 ├── src/
-│   ├── App.tsx              # React composition root
-│   ├── AppContent.tsx       # Interface and information pages
-│   ├── airlocal.ts          # Pairing and transfer engine
-│   ├── components/ui/       # Local shadcn-style primitives
-│   ├── custom.css           # Design tokens and application styles
-│   └── main.tsx             # Vite entry point
+│   ├── App.tsx                 # React application composition
+│   ├── AppContent.tsx          # Interface and information pages
+│   ├── airlocal.ts             # Pairing and transfer logic
+│   ├── components/
+│   │   └── ui/                 # UI primitives
+│   ├── custom.css              # Application styles
+│   └── main.tsx                # Frontend entry point
 ├── worker/
-│   ├── worker.js            # Cloudflare Worker + Durable Object relay
-│   └── wrangler.toml        # Worker deployment configuration
-├── index.html               # Vite document shell
-├── vercel.json              # Vercel configuration
-├── package.json             # Scripts and dependencies
-└── vite.config.ts           # Vite configuration
+│   ├── worker.js               # Worker and signaling logic
+│   └── wrangler.toml           # Cloudflare deployment configuration
+├── index.html                  # HTML entry point
+├── package.json                # Dependencies and scripts
+├── vite.config.ts              # Vite configuration
+├── vercel.json                 # Vercel configuration
+└── README.md
 ```
 
-## Production checklist
+---
 
-- [ ] Deploy the Cloudflare Worker and verify its health endpoint.
-- [ ] Run `npm run check` and `npm run build`.
-- [ ] Deploy the frontend over HTTPS.
-- [ ] Test QR and room-code pairing.
-- [ ] Test shared Wi-Fi, phone-hotspot, and LAN/Ethernet connections.
-- [ ] Test a large file and a multi-file queue.
-- [ ] Test cancellation from both sides.
-- [ ] Test duplicate handling and Downloads fallback.
-- [ ] Use a fresh room code for sensitive sharing sessions.
+## Why AirLocal matters to the JavaScript ecosystem
+
+AirLocal is an example of how modern browser APIs can power practical, cross-platform applications without requiring native clients.
+
+The project brings together React, TypeScript, WebRTC data channels, WebSocket signaling, browser file-system capabilities, and Cloudflare's edge infrastructure to solve a familiar problem: moving files between devices.
+
+It is particularly relevant to web developers interested in:
+
+- Peer-to-peer applications and WebRTC
+- Real-time browser communication
+- Binary streaming and large-file handling
+- Browser storage and file-system APIs
+- Cross-platform progressive web experiences
+- Serverless signaling and edge-based coordination
+
+The goal is to make direct device-to-device sharing accessible through the open web.
+
+---
 
 ## Contributing
 
-Issues and pull requests are welcome. For a focused change:
+Contributions, bug reports, and ideas are welcome.
 
 1. Fork the repository.
-2. Create a branch.
-3. Make the smallest complete change.
-4. Run `npm run check`, `npm run build`, and `git diff --check`.
-5. Include the user-visible behavior and validation steps in the pull request.
+2. Create a feature branch.
+3. Implement your change.
+4. Run the project checks and production build.
+5. Submit a pull request with a clear description and testing notes.
 
-Do not commit credentials, local environment files, or generated build output.
+```bash
+npm run check
+npm run build
+git diff --check
+```
 
-## References
+For bug reports, include the browsers and operating systems involved, network setup, steps to reproduce, and relevant console errors. Do not include private files or sensitive session information.
 
-The application includes a citations page covering WebRTC, RTCDataChannel,
-ICE, STUN, WebSockets, File System APIs, OPFS, IndexedDB, Web Crypto, QR
-generation, Cloudflare Durable Objects, Lucide, Tailwind CSS, and Vercel.
+---
 
 ## License
 
-AirLocal is licensed under the [MIT License](./LICENSE).
+AirLocal is released under the [MIT License](./LICENSE).
 
 ## Maintainer
 
-[Pulkit Pareek](https://github.com/pulkitpareek18)
+**Pulkit Pareek**
+
+- GitHub: [@pulkitpareek18](https://github.com/pulkitpareek18)
+- Project: [AirLocal](https://github.com/pulkitpareek18/AirLocal)
+- Live demo: [airlocal.vercel.app](https://airlocal.vercel.app/)
+
+---
+
+<p align="center">
+  <strong>AirLocal — File sharing belongs to the open web.</strong>
+</p>

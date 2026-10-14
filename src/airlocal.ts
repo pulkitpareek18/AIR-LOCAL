@@ -478,6 +478,11 @@
     input.value = value;
     return new Promise(resolve => {
       pendingInput = { resolve, dialog };
+      // Move focus off the element that opened the dialog (e.g. the rename
+      // pencil button) before showModal(). Native dialogs restore focus to it
+      // on close(), and a trailing Enter keyup would re-activate that button,
+      // instantly reopening the dialog after Enter is pressed in the input.
+      if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
       dialog.showModal();
       input.focus();
       input.select();
@@ -1615,7 +1620,9 @@
       resolve(null);
     });
     document.getElementById('inputValue').addEventListener('keydown', event => {
-      if (event.key === 'Enter') resolveInput(event.currentTarget.value);
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      resolveInput(event.currentTarget.value);
     });
     // triple-tap header toggles the diagnostic overlay (for phones)
     let tapCount = 0, tapTimer = null;

@@ -40,6 +40,7 @@
   let controlChannel = null;
   let activePeer = null;
   let pendingPeer = null;
+  let connectionPhase = 'requesting'; // 'requesting' → 'connecting' → cleared on open; shown on the pending peer's card
   let pendingIncoming = null;       // { from, name }
   let qrTargetSid = null;
   let qrPairToken = null;
@@ -931,7 +932,13 @@
 
   function peerMarkup(peer) {
     const connected = activePeer === peer.sid;
+    const pending = !connected && pendingPeer === peer.sid;
     const platform = { ios: 'iOS', android: 'Android', windows: 'Windows', mac: 'macOS', linux: 'Linux' }[peer.kind] || 'Device';
+    const statusLabel = connected
+      ? '<span class="-mt-1.5 text-[10px] font-medium uppercase tracking-wider text-success">connected</span>'
+      : pending
+        ? `<span class="-mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-warning"><span class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-warning"></span>${esc(connectionPhase)}</span>`
+        : '<span class="-mt-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">connect</span>';
     return `
       <div class="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
         <i data-lucide="${iconFor(peer.kind)}" class="h-5 w-5"></i>
@@ -941,7 +948,7 @@
         <span class="flex h-4 w-4 shrink-0 items-center justify-center">${platformIconFor(peer.kind)}</span>
         <span>${platform}</span>
       </span>
-      <span class="-mt-1.5 text-[10px] font-medium uppercase tracking-wider ${connected ? 'text-success' : 'text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'}">${connected ? 'connected' : 'connect'}</span>`;
+      ${statusLabel}`;
   }
 
   function refreshPeerUI() {
@@ -973,6 +980,8 @@
     if (activePeer === sid) teardownConnection(null, true);
     if (pc) teardownConnection(null, true);
     pendingPeer = sid;
+    connectionPhase = 'requesting';
+    refreshPeerUI();
     setStatus('Requesting', 'busy');
     buildPeerConnection(true);
     signal(sid, { t: 'connect-request', automatic, pairToken });
@@ -1074,6 +1083,8 @@
       }
       case 'connect-accept': {
         if (pendingPeer !== from || !pc) return;
+        connectionPhase = 'connecting';
+        refreshPeerUI();
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         await waitIceComplete();
@@ -1085,10 +1096,12 @@
         log(`${msg.name || 'Device'} declined`, 'error');
         setStatus('Online', 'online');
         teardownConnection(null, true);
+        pendingPeer = null;
+        refreshPeerUI();
         return;
       }
       case 'offer': {
-        if (pendingPeer !== from) { pendingPeer = from; }
+        if (pendingPeer !== from) { pendingPeer = from; connectionPhase = 'connecting'; refreshPeerUI(); }
         if (!pc) buildPeerConnection(false);
         await pc.setRemoteDescription({ type: 'offer', sdp: d.sdp });
         const answer = await pc.createAnswer();
@@ -1129,6 +1142,8 @@
     if (!accepted) { signal(from, { t: 'connect-decline' }); return; }
     if (pc) teardownConnection(null, true);
     pendingPeer = from;
+    connectionPhase = 'connecting';
+    refreshPeerUI();
     setStatus('Pairing', 'busy');
     buildPeerConnection(false);
     signal(from, { t: 'connect-accept' });
@@ -1187,6 +1202,7 @@
     backupSessionDirectory = null;
     backupSessionPath = '';
     overwritePolicy = null;
+    if (!silent) pendingPeer = null;
     refreshPeerUI();
     for (const transfer of receiveTransfers.values()) {
       discardReceiveTransfer(transfer);
@@ -1199,7 +1215,6 @@
     renderStagedQueue();
     renderTransfers();
     if (!silent) {
-      pendingPeer = null;
       const sec = document.getElementById('transferSection');
       sec.classList.add('hidden'); sec.classList.remove('grid');
       setStatus('Online', 'online');
